@@ -11,7 +11,7 @@ class axis_master_env extends uvm_env;
     axis_master_agent agent;
 
     // Virtual interface
-    virtual axis_master_interface #(.DATA_WIDTH(`AXIS_DATA_WIDTH)) vif;
+    virtual axis_master_interface vif;
 
     function new(string name = "axis_master_env", uvm_component parent = null);
         super.new(name, parent);
@@ -21,12 +21,12 @@ class axis_master_env extends uvm_env;
         super.build_phase(phase);
         
         // Get virtual interface
-        if (!uvm_config_db #(virtual axis_master_interface #(.DATA_WIDTH(`AXIS_DATA_WIDTH)))::get(this, "", "vif", vif)) begin
-            `uvm_fatal("NOVIF", "Virtual interface not found for " + get_full_name())
+        if (!uvm_config_db #(virtual axis_master_interface)::get(this, "", "vif", vif)) begin
+            `uvm_fatal("NOVIF", $sformatf("Virtual interface not found for %s", get_full_name()))
         end
         
         // Propagate virtual interface to agent
-        uvm_config_db #(virtual axis_master_interface #(.DATA_WIDTH(`AXIS_DATA_WIDTH)))::set(this, "agent", "vif", vif);
+        uvm_config_db #(virtual axis_master_interface)::set(this, "agent", "vif", vif);
         
         // Create agent
         agent = axis_master_agent::type_id::create("agent", this);

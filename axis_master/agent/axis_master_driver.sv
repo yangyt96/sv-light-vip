@@ -8,7 +8,7 @@ class axis_master_driver extends uvm_driver #(axis_master_seq_item);
     `uvm_component_utils(axis_master_driver)
 
     // Virtual interface
-    virtual axis_master_interface #(.DATA_WIDTH(`AXIS_DATA_WIDTH)) vif;
+    virtual axis_master_interface vif;
 
     // Configuration
     bit enable_protocol_check = 1;
@@ -24,8 +24,8 @@ class axis_master_driver extends uvm_driver #(axis_master_seq_item);
         super.build_phase(phase);
         
         // Get the virtual interface from config database
-        if (!uvm_config_db #(virtual axis_master_interface #(.DATA_WIDTH(`AXIS_DATA_WIDTH)))::get(this, "", "vif", vif)) begin
-            `uvm_fatal("NOVIF", "Virtual interface not found for " + get_full_name())
+        if (!uvm_config_db #(virtual axis_master_interface)::get(this, "", "vif", vif)) begin
+            `uvm_fatal("NOVIF", $sformatf("Virtual interface not found for %s", get_full_name()))
         end
         
         `uvm_info("DRIVER_BUILD", "Driver built successfully", UVM_MEDIUM)
@@ -36,9 +36,9 @@ class axis_master_driver extends uvm_driver #(axis_master_seq_item);
         `uvm_info("DRIVER_CONNECT", "Driver connected successfully", UVM_MEDIUM)
     endfunction : connect_phase
 
-    function void reset_phase(uvm_phase phase);
+    task reset_phase(uvm_phase phase);
         super.reset_phase(phase);
-    endfunction : reset_phase
+    endtask : reset_phase
 
     // Reset interface signals to default state in post_reset phase
     task post_reset_phase(uvm_phase phase);
@@ -60,7 +60,6 @@ class axis_master_driver extends uvm_driver #(axis_master_seq_item);
 
     task run_phase(uvm_phase phase);
         axis_master_seq_item req;
-        axis_master_seq_item rsp;
         
         `uvm_info("DRIVER", "Starting driver run phase", UVM_MEDIUM)
         
@@ -71,12 +70,8 @@ class axis_master_driver extends uvm_driver #(axis_master_seq_item);
             
             // Drive the transaction
             drive_transaction(req);
-            
-            // Create response
-            rsp = axis_master_seq_item::type_id::create("rsp");
-            rsp.copy(req);
-            
-            seq_item_port.item_done(rsp);
+
+            seq_item_port.item_done();
             transfer_count++;
         end
     endtask : run_phase
@@ -109,8 +104,8 @@ class axis_master_driver extends uvm_driver #(axis_master_seq_item);
             `uvm_warning("DRIVER", $sformatf("tready timeout after %0d cycles", ready_wait_count))
         end
         
-        // Deassert tvalid
-        @(posedge vif.clk);
+        // Deassert on the same cycle after the handshake completes to avoid
+        // holding tvalid high for an extra transfer when tready is always asserted.
         vif.master.tvalid <= 0;
         vif.master.tdata  <= 0;
         vif.master.tstrb  <= '1;

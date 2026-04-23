@@ -13,10 +13,10 @@ class axis_master_agent extends uvm_agent;
     axis_master_monitor     monitor;
 
     // Virtual interface
-    virtual axis_master_interface #(.DATA_WIDTH(`AXIS_DATA_WIDTH)) vif;
+    virtual axis_master_interface vif;
 
     // Configuration
-    bit is_active = UVM_ACTIVE;
+    uvm_active_passive_enum is_active = UVM_ACTIVE;
 
     function new(string name = "axis_master_agent", uvm_component parent = null);
         super.new(name, parent);
@@ -29,13 +29,13 @@ class axis_master_agent extends uvm_agent;
         uvm_config_db #(uvm_active_passive_enum)::set(this, "*", "is_active", is_active);
         
         // Get virtual interface
-        if (!uvm_config_db #(virtual axis_master_interface #(.DATA_WIDTH(`AXIS_DATA_WIDTH)))::get(this, "", "vif", vif)) begin
-            `uvm_fatal("NOVIF", "Virtual interface not found for " + get_full_name())
+        if (!uvm_config_db #(virtual axis_master_interface)::get(this, "", "vif", vif)) begin
+            `uvm_fatal("NOVIF", $sformatf("Virtual interface not found for %s", get_full_name()))
         end
         
         // Propagate virtual interface to child components
-        uvm_config_db #(virtual axis_master_interface #(.DATA_WIDTH(`AXIS_DATA_WIDTH)))::set(this, "driver", "vif", vif);
-        uvm_config_db #(virtual axis_master_interface #(.DATA_WIDTH(`AXIS_DATA_WIDTH)))::set(this, "monitor", "vif", vif);
+        uvm_config_db #(virtual axis_master_interface)::set(this, "driver", "vif", vif);
+        uvm_config_db #(virtual axis_master_interface)::set(this, "monitor", "vif", vif);
         
         // Create components
         monitor = axis_master_monitor::type_id::create("monitor", this);

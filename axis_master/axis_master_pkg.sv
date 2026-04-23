@@ -24,6 +24,9 @@ package axis_master_pkg;
     // Environment
     `include "env/axis_master_env.sv"
 
+    // Tests
+    `include "axis_master_test.sv"
+
 endpackage : axis_master_pkg
 
 `endif // AXIS_MASTER_PKG_SV
