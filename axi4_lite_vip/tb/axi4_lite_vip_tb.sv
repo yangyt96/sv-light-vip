@@ -70,8 +70,12 @@ module axi4_lite_dut_tb;
   Axi4LiteMasterVIP #(ADDR_WIDTH, DATA_WIDTH, STRB_WIDTH) master;
   Axi4LiteSlaveVIP  #(ADDR_WIDTH, DATA_WIDTH, STRB_WIDTH) slave;
 
-  function automatic logic [ADDR_WIDTH-1:0] build_addr(int unsigned index);
-    return logic'(index * STRB_WIDTH);
+  function automatic logic [ADDR_WIDTH-1:0] build_write_addr(int unsigned index);
+    return ADDR_WIDTH'((((index * 5) + 1) * STRB_WIDTH));
+  endfunction
+
+  function automatic logic [ADDR_WIDTH-1:0] build_read_addr(int unsigned index);
+    return ADDR_WIDTH'((16'h0100) + (((index * 7) + 3) * STRB_WIDTH));
   endfunction
 
   function automatic logic [DATA_WIDTH-1:0] build_wdata(int unsigned index);
@@ -106,7 +110,7 @@ module axi4_lite_dut_tb;
     logic [STRB_WIDTH-1:0] slave_strb;
     logic [2:0]            slave_prot;
 
-    addr = build_addr(index);
+    addr = build_write_addr(index);
     data = build_wdata(index);
     strb = build_wstrb(index);
 
@@ -130,7 +134,7 @@ module axi4_lite_dut_tb;
     logic [ADDR_WIDTH-1:0] slave_addr;
     logic [2:0]            slave_prot;
 
-    addr          = build_addr(index + WRITE_STIMULUS_CNT);
+    addr          = build_read_addr(index);
     expected_data = build_rdata(index);
 
     fork
@@ -179,6 +183,7 @@ module axi4_lite_dut_tb;
 
   `TEST_SUITE begin
     int unsigned idx;
+    logic [ADDR_WIDTH-1:0] prev_addr;
 
     master = new(s_axil_if.master, "axil_master_vip");
     slave  = new(m_axil_if.slave, "axil_slave_vip");
@@ -188,14 +193,30 @@ module axi4_lite_dut_tb;
 
     master.configure_pause_generator(1'b0);
     slave.configure_backpressure(1'b0);
+    prev_addr = '0;
     for (idx = 0; idx < WRITE_STIMULUS_CNT; idx++) begin
+      assert(build_write_addr(idx) != '0)
+        else $error("Write address stayed at zero for index %0d", idx);
+      if (idx > 0) begin
+        assert(build_write_addr(idx) != prev_addr)
+          else $error("Write address did not change at index %0d", idx);
+      end
       run_write_transfer(idx);
+      prev_addr = build_write_addr(idx);
     end
 
     master.configure_pause_generator(1'b1, 1, 3);
     slave.configure_backpressure(1'b1, 1, 3);
+    prev_addr = '0;
     for (idx = 0; idx < READ_STIMULUS_CNT; idx++) begin
+      assert(build_read_addr(idx) != '0)
+        else $error("Read address stayed at zero for index %0d", idx);
+      if (idx > 0) begin
+        assert(build_read_addr(idx) != prev_addr)
+          else $error("Read address did not change at index %0d", idx);
+      end
       run_read_transfer(idx);
+      prev_addr = build_read_addr(idx);
     end
   end
 
