@@ -5,10 +5,24 @@ class AxiStreamMasterVIP #(
 
   // handle to the interface
   virtual axi_stream_if #(DATA_WIDTH, KEEP_WIDTH).master vif;
+  bit enable_pause_generator;
+  int unsigned min_pause_cycles;
+  int unsigned max_pause_cycles;
 
   // constructor
   function new(virtual axi_stream_if #(DATA_WIDTH, KEEP_WIDTH).master vif);
     this.vif = vif;
+    enable_pause_generator = 1'b0;
+    min_pause_cycles       = 0;
+    max_pause_cycles       = 0;
+  endfunction
+
+  function void configure_pause_generator(bit enable,
+                                          int unsigned min_cycles = 0,
+                                          int unsigned max_cycles = 0);
+    enable_pause_generator = enable;
+    min_pause_cycles       = min_cycles;
+    max_pause_cycles       = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
   // API: push_axi_stream
@@ -19,7 +33,14 @@ class AxiStreamMasterVIP #(
                        byte                   tid,
                        byte                   tdest,
                        int unsigned           tuser);
+    int unsigned pause_cycles;
+
     while (!vif.aresetn) @(posedge vif.aclk);
+
+    if (enable_pause_generator) begin
+      pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
+      repeat (pause_cycles) @(posedge vif.aclk);
+    end
 
     // drive signals
     vif.tdata  <= tdata;

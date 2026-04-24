@@ -13,8 +13,9 @@ module axi_stream_dut_tb;
 
   localparam int DATA_WIDTH           = 64;
   localparam int KEEP_WIDTH           = DATA_WIDTH / 8;
-  localparam int BASIC_STIMULUS_COUNT = 64;
-  localparam int BP_STIMULUS_COUNT    = 64;
+  localparam int BASIC_STIMULUS_COUNT = 48;
+  localparam int PAUSE_STIMULUS_COUNT = 40;
+  localparam int BP_STIMULUS_COUNT    = 40;
 
   // clock and reset
   logic clk;
@@ -168,14 +169,24 @@ module axi_stream_dut_tb;
       @(posedge rstn);
       @(posedge clk);
 
+      master.configure_pause_generator(1'b0);
       slave.configure_backpressure(1'b0);
       for (stimulus_idx = 0; stimulus_idx < BASIC_STIMULUS_COUNT; stimulus_idx++) begin
         run_transfer(stimulus_idx);
       end
 
-      slave.configure_backpressure(1'b1, 2, 6);
+      master.configure_pause_generator(1'b1, 1, 4);
+      slave.configure_backpressure(1'b0);
       for (stimulus_idx = BASIC_STIMULUS_COUNT;
-           stimulus_idx < (BASIC_STIMULUS_COUNT + BP_STIMULUS_COUNT);
+           stimulus_idx < (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT);
+           stimulus_idx++) begin
+        run_transfer(stimulus_idx);
+      end
+
+      master.configure_pause_generator(1'b0);
+      slave.configure_backpressure(1'b1, 2, 6);
+      for (stimulus_idx = (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT);
+           stimulus_idx < (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT + BP_STIMULUS_COUNT);
            stimulus_idx++) begin
         run_transfer(stimulus_idx);
       end
