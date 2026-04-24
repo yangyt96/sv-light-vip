@@ -14,8 +14,10 @@ lib = vu.add_library("lib")
 
 lib.add_source_files(
     [
-        ROOT / "*.sv",
+        ROOT / "sim/*.sv",
+        ROOT / "tb/*.sv",
     ],
+    include_dirs=[(ROOT / "sim").as_posix()],
 )
 
 
