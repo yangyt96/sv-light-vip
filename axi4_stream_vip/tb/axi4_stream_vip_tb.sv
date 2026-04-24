@@ -101,14 +101,14 @@ module axi4_stream_dut_tb;
     exp_tuser = 32'h8765_0000 | index;
 
     fork
-      master.push_axi4_stream(exp_tdata,
+      master.transmit(exp_tdata,
                              exp_tkeep,
                              exp_tstrb,
                              exp_tlast,
                              exp_tid,
                              exp_tdest,
                              exp_tuser);
-      slave.pop_axi4_stream(rx_tdata,
+      slave.receive(rx_tdata,
                            rx_tkeep,
                            rx_tstrb,
                            rx_tlast,
@@ -135,7 +135,7 @@ module axi4_stream_dut_tb;
     for (stimulus_idx = start_index;
          stimulus_idx < (start_index + transfer_count);
          stimulus_idx++) begin
-      master.push_axi4_stream(build_tdata(stimulus_idx),
+      master.transmit(build_tdata(stimulus_idx),
                              build_byte_mask(stimulus_idx),
                              build_byte_mask(stimulus_idx + 1),
                              ((stimulus_idx % 8) == 7),

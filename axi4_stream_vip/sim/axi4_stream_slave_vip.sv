@@ -28,8 +28,8 @@ class AxiStreamSlaveVIP #(
     max_stall_cycles    = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
-  // API: pop_axi4_stream
-  task pop_axi4_stream(output logic [DATA_WIDTH-1:0] tdata,
+  // API: receive
+  task receive(output logic [DATA_WIDTH-1:0] tdata,
                       output logic [KEEP_WIDTH-1:0] tkeep,
                       output logic [KEEP_WIDTH-1:0] tstrb,
                       output bit                    tlast,

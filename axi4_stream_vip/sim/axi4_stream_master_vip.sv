@@ -28,8 +28,8 @@ class AxiStreamMasterVIP #(
     max_pause_cycles       = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
-  // API: push_axi4_stream
-  task push_axi4_stream(logic [DATA_WIDTH-1:0] tdata,
+  // API: transmit
+  task transmit(logic [DATA_WIDTH-1:0] tdata,
                        logic [KEEP_WIDTH-1:0] tkeep,
                        logic [KEEP_WIDTH-1:0] tstrb,
                        bit                    tlast,

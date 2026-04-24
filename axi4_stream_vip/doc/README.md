@@ -10,8 +10,8 @@ UVM environment.
 The VIP currently includes:
 
 - A parameterized AXI Stream interface
-- A master VIP with `push_axi4_stream`
-- A slave VIP with `pop_axi4_stream`
+- A master VIP with `transmit`
+- A slave VIP with `receive`
 - Optional pause generation on the master side
 - Optional backpressure generation on the slave side
 - Transaction logging to the simulator CLI
@@ -77,7 +77,7 @@ master = new(s_axis_if.master, "master_vip");
 Main API:
 
 ```systemverilog
-master.push_axi4_stream(tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
+master.transmit(tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
 ```
 
 Pause generation:
@@ -107,7 +107,7 @@ slave = new(m_axis_if.slave, "slave_vip");
 Main API:
 
 ```systemverilog
-slave.pop_axi4_stream(tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
+slave.receive(tdata, tkeep, tstrb, tlast, tid, tdest, tuser);
 ```
 
 Backpressure generation:
@@ -118,7 +118,7 @@ slave.configure_backpressure(enable, min_cycles, max_cycles);
 
 ## Transaction Logging
 
-Each `push_axi4_stream` and `pop_axi4_stream` call prints a transaction summary to
+Each `transmit` and `receive` call prints a transaction summary to
 the simulator CLI.
 
 Example format:
