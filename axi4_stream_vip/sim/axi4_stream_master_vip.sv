@@ -30,12 +30,12 @@ class Axi4StreamMasterVIP #(
 
   // API: transmit
   task transmit(logic [DATA_WIDTH-1:0] tdata,
-                       logic [KEEP_WIDTH-1:0] tkeep,
-                       logic [KEEP_WIDTH-1:0] tstrb,
-                       bit                    tlast,
-                       byte                   tid,
-                       byte                   tdest,
-                       int unsigned           tuser);
+                       logic [KEEP_WIDTH-1:0] tkeep = '1,
+                       logic [KEEP_WIDTH-1:0] tstrb = '1,
+                       bit                    tlast = '1,
+                       byte                   tid   = '0,
+                       byte                   tdest = '0,
+                       int unsigned           tuser = 0);
     int unsigned pause_cycles;
 
     while (!vif.aresetn) @(posedge vif.aclk);
