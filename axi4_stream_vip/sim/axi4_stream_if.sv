@@ -1,5 +1,8 @@
 interface axi4_stream_if #(parameter data_width = 32,
-                          parameter keep_width = data_width/8)
+                          parameter keep_width = data_width/8,
+                          parameter tid_width = 8,
+                          parameter tdest_width = 8,
+                          parameter tuser_width = 32)
                          (input logic aclk,
                           input logic aresetn);
 
@@ -12,9 +15,9 @@ interface axi4_stream_if #(parameter data_width = 32,
   logic [keep_width-1:0] tkeep;   // byte qualifiers
   logic [keep_width-1:0] tstrb;   // byte strobes
   logic                  tlast;   // end of packet/frame
-  logic [7:0]            tid;     // stream id
-  logic [7:0]            tdest;   // destination routing
-  logic [31:0]           tuser;   // user-defined sideband
+  logic [tid_width-1:0]  tid;     // stream id
+  logic [tdest_width-1:0] tdest;  // destination routing
+  logic [tuser_width-1:0] tuser;  // user-defined sideband
 
   // modports for direction control
   modport master (input  aclk, aresetn, tready,

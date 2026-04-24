@@ -1,31 +1,34 @@
 module axi4_stream_dut #(
   parameter DATA_WIDTH = 32,
-  parameter KEEP_WIDTH = DATA_WIDTH/8
+  parameter KEEP_WIDTH = DATA_WIDTH/8,
+  parameter TID_WIDTH = 8,
+  parameter TDEST_WIDTH = 8,
+  parameter TUSER_WIDTH = 32
 )(
-  input  logic                  aclk,
-  input  logic                  aresetn,
+  input  logic                   aclk,
+  input  logic                   aresetn,
 
   // AXI-Stream slave (input)
-  input  logic [DATA_WIDTH-1:0] s_axis_tdata,
-  input  logic                  s_axis_tvalid,
-  output logic                  s_axis_tready,
-  input  logic [KEEP_WIDTH-1:0] s_axis_tkeep,
-  input  logic [KEEP_WIDTH-1:0] s_axis_tstrb,
-  input  logic                  s_axis_tlast,
-  input  logic [7:0]            s_axis_tid,
-  input  logic [7:0]            s_axis_tdest,
-  input  logic [31:0]           s_axis_tuser,
+  input  logic [DATA_WIDTH-1:0]  s_axis_tdata,
+  input  logic                   s_axis_tvalid,
+  output logic                   s_axis_tready,
+  input  logic [KEEP_WIDTH-1:0]  s_axis_tkeep,
+  input  logic [KEEP_WIDTH-1:0]  s_axis_tstrb,
+  input  logic                   s_axis_tlast,
+  input  logic [TID_WIDTH-1:0]   s_axis_tid,
+  input  logic [TDEST_WIDTH-1:0] s_axis_tdest,
+  input  logic [TUSER_WIDTH-1:0] s_axis_tuser,
 
   // AXI-Stream master (output)
-  output logic [DATA_WIDTH-1:0] m_axis_tdata,
-  output logic                  m_axis_tvalid,
-  input  logic                  m_axis_tready,
-  output logic [KEEP_WIDTH-1:0] m_axis_tkeep,
-  output logic [KEEP_WIDTH-1:0] m_axis_tstrb,
-  output logic                  m_axis_tlast,
-  output logic [7:0]            m_axis_tid,
-  output logic [7:0]            m_axis_tdest,
-  output logic [31:0]           m_axis_tuser
+  output logic [DATA_WIDTH-1:0]  m_axis_tdata,
+  output logic                   m_axis_tvalid,
+  input  logic                   m_axis_tready,
+  output logic [KEEP_WIDTH-1:0]  m_axis_tkeep,
+  output logic [KEEP_WIDTH-1:0]  m_axis_tstrb,
+  output logic                   m_axis_tlast,
+  output logic [TID_WIDTH-1:0]   m_axis_tid,
+  output logic [TDEST_WIDTH-1:0] m_axis_tdest,
+  output logic [TUSER_WIDTH-1:0] m_axis_tuser
 );
 
   // One-stage AXI Stream pipeline.

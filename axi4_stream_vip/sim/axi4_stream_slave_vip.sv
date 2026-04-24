@@ -1,17 +1,20 @@
 class Axi4StreamSlaveVIP #(
   int DATA_WIDTH = 32,
-  int KEEP_WIDTH = DATA_WIDTH / 8
+  int KEEP_WIDTH = DATA_WIDTH / 8,
+  int TID_WIDTH = 8,
+  int TDEST_WIDTH = 8,
+  int TUSER_WIDTH = 32
 );
 
   // handle to the interface
-  virtual axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH).slave vif;
+  virtual axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH).slave vif;
   string vip_name;
   bit enable_backpressure;
   int unsigned min_stall_cycles;
   int unsigned max_stall_cycles;
 
   // constructor
-  function new(virtual axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH).slave vif,
+  function new(virtual axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH).slave vif,
                string vip_name = "axi4_stream_slave_vip");
     this.vif = vif;
     this.vip_name = vip_name;
@@ -33,9 +36,9 @@ class Axi4StreamSlaveVIP #(
                       output logic [KEEP_WIDTH-1:0] tkeep,
                       output logic [KEEP_WIDTH-1:0] tstrb,
                       output bit                    tlast,
-                      output byte                   tid,
-                      output byte                   tdest,
-                      output int unsigned           tuser);
+                      output logic [TID_WIDTH-1:0]  tid,
+                      output logic [TDEST_WIDTH-1:0] tdest,
+                      output logic [TUSER_WIDTH-1:0] tuser);
     int unsigned stall_cycles;
 
     while (!vif.aresetn) @(posedge vif.aclk);

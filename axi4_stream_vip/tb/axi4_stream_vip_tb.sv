@@ -10,6 +10,9 @@ module axi4_stream_dut_tb;
 
   localparam int DATA_WIDTH                = 64;
   localparam int KEEP_WIDTH                = DATA_WIDTH / 8;
+  localparam int TID_WIDTH                 = 8;
+  localparam int TDEST_WIDTH               = 8;
+  localparam int TUSER_WIDTH               = 32;
   localparam int BASIC_STIMULUS_COUNT      = 48;
   localparam int PAUSE_STIMULUS_COUNT      = 40;
   localparam int BP_STIMULUS_COUNT         = 40;
@@ -18,12 +21,15 @@ module axi4_stream_dut_tb;
   logic clk;
   logic rstn;
 
-  axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH) s_axis_if(clk, rstn);
-  axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH) m_axis_if(clk, rstn);
+  axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH) s_axis_if(clk, rstn);
+  axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH) m_axis_if(clk, rstn);
 
   axi4_stream_dut #(
     .DATA_WIDTH(DATA_WIDTH),
-    .KEEP_WIDTH(KEEP_WIDTH)
+    .KEEP_WIDTH(KEEP_WIDTH),
+    .TID_WIDTH(TID_WIDTH),
+    .TDEST_WIDTH(TDEST_WIDTH),
+    .TUSER_WIDTH(TUSER_WIDTH)
   ) dut (
     .aclk(clk),
     .aresetn(rstn),
@@ -47,8 +53,8 @@ module axi4_stream_dut_tb;
     .m_axis_tuser (m_axis_if.tuser)
   );
 
-  Axi4StreamMasterVIP #(DATA_WIDTH, KEEP_WIDTH) master;
-  Axi4StreamSlaveVIP  #(DATA_WIDTH, KEEP_WIDTH) slave;
+  Axi4StreamMasterVIP #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH) master;
+  Axi4StreamSlaveVIP  #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH) slave;
 
   function automatic logic [DATA_WIDTH-1:0] build_tdata(int unsigned index);
     logic [DATA_WIDTH-1:0] value;
@@ -81,24 +87,24 @@ module axi4_stream_dut_tb;
     logic [KEEP_WIDTH-1:0] exp_tkeep;
     logic [KEEP_WIDTH-1:0] exp_tstrb;
     bit                    exp_tlast;
-    byte                   exp_tid;
-    byte                   exp_tdest;
-    int unsigned           exp_tuser;
+    logic [TID_WIDTH-1:0]  exp_tid;
+    logic [TDEST_WIDTH-1:0] exp_tdest;
+    logic [TUSER_WIDTH-1:0] exp_tuser;
     logic [DATA_WIDTH-1:0] rx_tdata;
     logic [KEEP_WIDTH-1:0] rx_tkeep;
     logic [KEEP_WIDTH-1:0] rx_tstrb;
     bit                    rx_tlast;
-    byte                   rx_tid;
-    byte                   rx_tdest;
-    int unsigned           rx_tuser;
+    logic [TID_WIDTH-1:0]  rx_tid;
+    logic [TDEST_WIDTH-1:0] rx_tdest;
+    logic [TUSER_WIDTH-1:0] rx_tuser;
 
     exp_tdata = build_tdata(index);
     exp_tkeep = build_byte_mask(index);
     exp_tstrb = build_byte_mask(index + 1);
     exp_tlast = ((index % 8) == 7);
-    exp_tid   = byte'(index);
-    exp_tdest = byte'(8'h80 | (index & 'h7f));
-    exp_tuser = 32'h8765_0000 | index;
+    exp_tid   = TID_WIDTH'(index);
+    exp_tdest = TDEST_WIDTH'(8'h80 | (index & 'h7f));
+    exp_tuser = TUSER_WIDTH'(32'h8765_0000 | index);
 
     fork
       master.transmit(exp_tdata,
@@ -139,9 +145,9 @@ module axi4_stream_dut_tb;
                              build_byte_mask(stimulus_idx),
                              build_byte_mask(stimulus_idx + 1),
                              ((stimulus_idx % 8) == 7),
-                             byte'(stimulus_idx),
-                             byte'(8'h80 | (stimulus_idx & 'h7f)),
-                             (32'h8765_0000 | stimulus_idx));
+                             TID_WIDTH'(stimulus_idx),
+                             TDEST_WIDTH'(8'h80 | (stimulus_idx & 'h7f)),
+                             TUSER_WIDTH'(32'h8765_0000 | stimulus_idx));
     end
   endtask
 

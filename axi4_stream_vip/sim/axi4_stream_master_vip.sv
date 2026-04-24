@@ -1,17 +1,20 @@
 class Axi4StreamMasterVIP #(
   int DATA_WIDTH = 32,
-  int KEEP_WIDTH = DATA_WIDTH / 8
+  int KEEP_WIDTH = DATA_WIDTH / 8,
+  int TID_WIDTH = 8,
+  int TDEST_WIDTH = 8,
+  int TUSER_WIDTH = 32
 );
 
   // handle to the interface
-  virtual axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH).master vif;
+  virtual axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH).master vif;
   string vip_name;
   bit enable_pause_generator;
   int unsigned min_pause_cycles;
   int unsigned max_pause_cycles;
 
   // constructor
-  function new(virtual axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH).master vif,
+  function new(virtual axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH).master vif,
                string vip_name = "axi4_stream_master_vip");
     this.vif = vif;
     this.vip_name = vip_name;
@@ -33,9 +36,9 @@ class Axi4StreamMasterVIP #(
                        logic [KEEP_WIDTH-1:0] tkeep = '1,
                        logic [KEEP_WIDTH-1:0] tstrb = '1,
                        bit                    tlast = '1,
-                       byte                   tid   = '0,
-                       byte                   tdest = '0,
-                       int unsigned           tuser = 0);
+                       logic [TID_WIDTH-1:0]  tid   = '0,
+                       logic [TDEST_WIDTH-1:0] tdest = '0,
+                       logic [TUSER_WIDTH-1:0] tuser = 0);
     int unsigned pause_cycles;
 
     while (!vif.aresetn) @(posedge vif.aclk);
