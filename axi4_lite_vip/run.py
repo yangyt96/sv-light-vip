@@ -19,4 +19,9 @@ lib.add_source_files(
     include_dirs=[(ROOT / "sim").as_posix()],
 )
 
+lib.set_sim_option(
+    name="modelsim.init_file.gui",
+    value=str(ROOT / "tb/axi4_lite_vip_tb.do"),
+)
+
 vu.main()
