@@ -24,12 +24,10 @@ jobs:
         run: |
           verible-verilog-lint \
           --rules_config_search \
-            $(find ./ip ./src -type f \( -name "*.sv" -o -name "*.svh" \) \
-              )
+            $(find ./ -type f \( -name "*.sv" -o -name "*.svh" \) )
       - name: Check Formatting
         # continue-on-error: true
         run: |
           verible-verilog-format \
           --verify --inplace \
-            $(find ./ip ./src -type f \( -name "*.sv" -o -name "*.svh" \) \
-              )
+            $(find ./ -type f \( -name "*.sv" -o -name "*.svh" \) )
