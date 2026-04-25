@@ -2,12 +2,12 @@
 
 `include "vunit_defines.svh"
 `include "spi_if.sv"
-`include "spi_master_vip.sv"
-`include "spi_slave_vip.sv"
+`include "spi_vip_pkg.sv"
 
 module spi_vip_tb;
 
   import vunit_pkg::*;
+  import spi_vip_pkg::*;
 
   localparam int DATA_BITS                  = 8;
   localparam int HALF_SCLK_CYCLES           = 4;

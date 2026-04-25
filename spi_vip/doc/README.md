@@ -28,7 +28,8 @@ spi_vip/
 ├── sim/
 │   ├── spi_if.sv
 │   ├── spi_master_vip.sv
-│   └── spi_slave_vip.sv
+│   ├── spi_slave_vip.sv
+│   └── spi_vip_pkg.sv
 ├── tb/
 │   ├── spi_vip_tb.do
 │   ├── spi_vip_tb.sv

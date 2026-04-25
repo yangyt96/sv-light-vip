@@ -26,7 +26,8 @@ axi4_lite_vip/
 ├── sim/
 │   ├── axi4_lite_if.sv
 │   ├── axi4_lite_master_vip.sv
-│   └── axi4_lite_mem_vip.sv
+│   ├── axi4_lite_mem_vip.sv
+│   └── axi4_lite_vip_pkg.sv
 ├── tb/
 │   ├── axi4_lite_vip_tb.do
 │   ├── axi4_lite_vip_tb.sv

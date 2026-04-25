@@ -28,7 +28,8 @@ i2c_vip/
 ├── sim/
 │   ├── i2c_if.sv
 │   ├── i2c_master_vip.sv
-│   └── i2c_slave_vip.sv
+│   ├── i2c_slave_vip.sv
+│   └── i2c_vip_pkg.sv
 ├── tb/
 │   ├── i2c_vip_tb.do
 │   ├── i2c_vip_tb.sv

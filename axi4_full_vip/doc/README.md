@@ -28,7 +28,8 @@ axi4_full_vip/
 ├── sim/
 │   ├── axi4_full_if.sv
 │   ├── axi4_full_master_vip.sv
-│   └── axi4_full_mem_vip.sv
+│   ├── axi4_full_mem_vip.sv
+│   └── axi4_full_vip_pkg.sv
 ├── tb/
 │   ├── axi4_full_vip_tb.do
 │   ├── axi4_full_vip_tb.sv

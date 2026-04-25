@@ -25,7 +25,8 @@ i2s_vip/
 ├── sim/
 │   ├── i2s_if.sv
 │   ├── i2s_rx_vip.sv
-│   └── i2s_tx_vip.sv
+│   ├── i2s_tx_vip.sv
+│   └── i2s_vip_pkg.sv
 ├── tb/
 │   ├── i2s_vip_tb.do
 │   ├── i2s_vip_tb.sv

@@ -2,12 +2,12 @@
 
 `include "vunit_defines.svh"
 `include "i2c_if.sv"
-`include "i2c_master_vip.sv"
-`include "i2c_slave_vip.sv"
+`include "i2c_vip_pkg.sv"
 
 module i2c_vip_tb;
 
   import vunit_pkg::*;
+  import i2c_vip_pkg::*;
 
   localparam int HALF_SCL_CYCLES          = 25;
   localparam int STIMULUS_COUNT           = 32;

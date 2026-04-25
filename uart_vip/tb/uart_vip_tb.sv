@@ -2,12 +2,12 @@
 
 `include "vunit_defines.svh"
 `include "uart_if.sv"
-`include "uart_tx_vip.sv"
-`include "uart_rx_vip.sv"
+`include "uart_vip_pkg.sv"
 
 module uart_vip_tb;
 
   import vunit_pkg::*;
+  import uart_vip_pkg::*;
 
   localparam int CLKS_PER_BIT            = 16;
   localparam int DATA_BITS               = 8;

@@ -2,12 +2,12 @@
 
 `include "vunit_defines.svh"
 `include "apb_if.sv"
-`include "apb_master_vip.sv"
-`include "apb_slave_vip.sv"
+`include "apb_vip_pkg.sv"
 
 module apb_vip_tb;
 
   import vunit_pkg::*;
+  import apb_vip_pkg::*;
 
   localparam int ADDR_WIDTH = 16;
   localparam int DATA_WIDTH = 32;

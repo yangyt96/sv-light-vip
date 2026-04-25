@@ -2,13 +2,13 @@
 
 `include "vunit_defines.svh"
 `include "axi4_stream_if.sv"
-`include "axi4_stream_master_vip.sv"
-`include "axi4_stream_slave_vip.sv"
+`include "axi4_stream_vip_pkg.sv"
 `include "axi4_stream_dut.sv"
 
 module axi4_stream_dut_tb;
 
   import vunit_pkg::*;
+  import axi4_stream_vip_pkg::*;
 
   localparam int DATA_WIDTH                = 64;
   localparam int KEEP_WIDTH                = DATA_WIDTH / 8;

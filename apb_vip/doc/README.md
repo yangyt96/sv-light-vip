@@ -25,7 +25,8 @@ apb_vip/
 ├── sim/
 │   ├── apb_if.sv
 │   ├── apb_master_vip.sv
-│   └── apb_slave_vip.sv
+│   ├── apb_slave_vip.sv
+│   └── apb_vip_pkg.sv
 ├── tb/
 │   ├── apb_vip_tb.do
 │   ├── apb_vip_tb.sv

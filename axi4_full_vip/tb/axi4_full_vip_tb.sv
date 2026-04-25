@@ -2,10 +2,12 @@
 
 `include "vunit_defines.svh"
 `include "axi4_full_if.sv"
-`include "axi4_full_master_vip.sv"
+`include "axi4_full_vip_pkg.sv"
 `include "axi4_full_mem_vip.sv"
 
 module axi4_full_vip_tb;
+
+  import axi4_full_vip_pkg::*;
 
   localparam int ADDR_WIDTH   = 32;
   localparam int DATA_WIDTH   = 32;

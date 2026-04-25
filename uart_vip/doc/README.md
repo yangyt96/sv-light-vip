@@ -27,7 +27,8 @@ uart_vip/
 ├── sim/
 │   ├── uart_if.sv
 │   ├── uart_rx_vip.sv
-│   └── uart_tx_vip.sv
+│   ├── uart_tx_vip.sv
+│   └── uart_vip_pkg.sv
 ├── tb/
 │   ├── uart_vip_tb.do
 │   ├── uart_vip_tb.sv

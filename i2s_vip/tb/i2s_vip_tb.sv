@@ -2,12 +2,12 @@
 
 `include "vunit_defines.svh"
 `include "i2s_if.sv"
-`include "i2s_tx_vip.sv"
-`include "i2s_rx_vip.sv"
+`include "i2s_vip_pkg.sv"
 
 module i2s_vip_tb;
 
   import vunit_pkg::*;
+  import i2s_vip_pkg::*;
 
   localparam int SAMPLE_WIDTH = 16;
   localparam int HALF_BCLK_CYCLES = 4;

@@ -7,9 +7,11 @@ interfaces/classes, a `tb/` directory for self-checking bring-up tests, and a
 protocol README under `doc/`.
 
 Each `tb/run.py` compiles one top-level testbench. That testbench includes its
-protocol interface, VIP classes, and any local DUT/memory model through the
+protocol interface, VIP package, and any local DUT/memory model through the
 `sim/` and `tb/` include paths, so compile order stays explicit and consistent
-across all VIPs.
+across all VIPs. Reusable class-based VIP components are grouped in
+`sim/*_vip_pkg.sv`; protocol interfaces and synthesizable-style helper modules
+remain as normal standalone SystemVerilog units.
 
 ## VIPs
 
@@ -53,10 +55,11 @@ docker run --rm -v "$PWD":/work -w /work/i2c_vip/tb modelsim:20.1 python3 run.py
 Run all VIP regressions with the local ModelSim Docker image:
 
 ```bash
-for vip in apb_vip axi4_lite_vip axi4_stream_vip axi4_full_vip i2c_vip i2s_vip spi_vip uart_vip; do
-  docker run --rm -v "$PWD":/work -w /work/$vip/tb modelsim:20.1 python3 run.py
-done
+python3 tools/run_all.py
 ```
+
+Use `python3 tools/run_all.py --mode native` to run each `tb/run.py` directly
+on the host, or `python3 tools/run_all.py --vip apb_vip` to run one VIP.
 
 ## GUI Use
 
