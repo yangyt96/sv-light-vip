@@ -18,54 +18,6 @@ module axi4_lite_dut_tb;
   logic rstn;
 
   axi4_lite_if #(ADDR_WIDTH, DATA_WIDTH, STRB_WIDTH) s_axil_if(clk, rstn);
-  axi4_lite_if #(ADDR_WIDTH, DATA_WIDTH, STRB_WIDTH) m_axil_if(clk, rstn);
-
-  axi4_lite_dut #(
-    .ADDR_WIDTH(ADDR_WIDTH),
-    .DATA_WIDTH(DATA_WIDTH),
-    .STRB_WIDTH(STRB_WIDTH)
-  ) dut (
-    .aclk         (clk),
-    .aresetn      (rstn),
-    .s_axil_awaddr(s_axil_if.awaddr),
-    .s_axil_awprot(s_axil_if.awprot),
-    .s_axil_awvalid(s_axil_if.awvalid),
-    .s_axil_awready(s_axil_if.awready),
-    .s_axil_wdata (s_axil_if.wdata),
-    .s_axil_wstrb (s_axil_if.wstrb),
-    .s_axil_wvalid(s_axil_if.wvalid),
-    .s_axil_wready(s_axil_if.wready),
-    .s_axil_bresp (s_axil_if.bresp),
-    .s_axil_bvalid(s_axil_if.bvalid),
-    .s_axil_bready(s_axil_if.bready),
-    .s_axil_araddr(s_axil_if.araddr),
-    .s_axil_arprot(s_axil_if.arprot),
-    .s_axil_arvalid(s_axil_if.arvalid),
-    .s_axil_arready(s_axil_if.arready),
-    .s_axil_rdata (s_axil_if.rdata),
-    .s_axil_rresp (s_axil_if.rresp),
-    .s_axil_rvalid(s_axil_if.rvalid),
-    .s_axil_rready(s_axil_if.rready),
-    .m_axil_awaddr(m_axil_if.awaddr),
-    .m_axil_awprot(m_axil_if.awprot),
-    .m_axil_awvalid(m_axil_if.awvalid),
-    .m_axil_awready(m_axil_if.awready),
-    .m_axil_wdata (m_axil_if.wdata),
-    .m_axil_wstrb (m_axil_if.wstrb),
-    .m_axil_wvalid(m_axil_if.wvalid),
-    .m_axil_wready(m_axil_if.wready),
-    .m_axil_bresp (m_axil_if.bresp),
-    .m_axil_bvalid(m_axil_if.bvalid),
-    .m_axil_bready(m_axil_if.bready),
-    .m_axil_araddr(m_axil_if.araddr),
-    .m_axil_arprot(m_axil_if.arprot),
-    .m_axil_arvalid(m_axil_if.arvalid),
-    .m_axil_arready(m_axil_if.arready),
-    .m_axil_rdata (m_axil_if.rdata),
-    .m_axil_rresp (m_axil_if.rresp),
-    .m_axil_rvalid(m_axil_if.rvalid),
-    .m_axil_rready(m_axil_if.rready)
-  );
 
   Axi4LiteMasterVIP #(ADDR_WIDTH, DATA_WIDTH, STRB_WIDTH) master;
 
@@ -73,25 +25,25 @@ module axi4_lite_dut_tb;
   axi4_lite_mem_vip mem_vip (
     .aclk     (clk),
     .aresetn  (rstn),
-    .awaddr   (m_axil_if.awaddr),
-    .awprot   (m_axil_if.awprot),
-    .awvalid  (m_axil_if.awvalid),
-    .awready  (m_axil_if.awready),
-    .wdata    (m_axil_if.wdata),
-    .wstrb    (m_axil_if.wstrb),
-    .wvalid   (m_axil_if.wvalid),
-    .wready   (m_axil_if.wready),
-    .bresp    (m_axil_if.bresp),
-    .bvalid   (m_axil_if.bvalid),
-    .bready   (m_axil_if.bready),
-    .araddr   (m_axil_if.araddr),
-    .arprot   (m_axil_if.arprot),
-    .arvalid  (m_axil_if.arvalid),
-    .arready  (m_axil_if.arready),
-    .rdata    (m_axil_if.rdata),
-    .rresp    (m_axil_if.rresp),
-    .rvalid   (m_axil_if.rvalid),
-    .rready   (m_axil_if.rready)
+    .awaddr   (s_axil_if.awaddr),
+    .awprot   (s_axil_if.awprot),
+    .awvalid  (s_axil_if.awvalid),
+    .awready  (s_axil_if.awready),
+    .wdata    (s_axil_if.wdata),
+    .wstrb    (s_axil_if.wstrb),
+    .wvalid   (s_axil_if.wvalid),
+    .wready   (s_axil_if.wready),
+    .bresp    (s_axil_if.bresp),
+    .bvalid   (s_axil_if.bvalid),
+    .bready   (s_axil_if.bready),
+    .araddr   (s_axil_if.araddr),
+    .arprot   (s_axil_if.arprot),
+    .arvalid  (s_axil_if.arvalid),
+    .arready  (s_axil_if.arready),
+    .rdata    (s_axil_if.rdata),
+    .rresp    (s_axil_if.rresp),
+    .rvalid   (s_axil_if.rvalid),
+    .rready   (s_axil_if.rready)
   );
 
   function automatic logic [ADDR_WIDTH-1:0] build_write_addr(int unsigned index);
