@@ -30,6 +30,7 @@ axi4_stream_vip/
 │   └── axi4_stream_slave_vip.sv
 ├── tb/
 │   ├── axi4_stream_dut.sv
+│   ├── axi4_stream_vip_tb.do
 │   └── axi4_stream_vip_tb.sv
 └── run.py
 ```
@@ -156,6 +157,12 @@ From the project root:
 
 ```bash
 python3 axi4_stream_vip/run.py
+```
+
+With Docker:
+
+```bash
+docker run --rm -v "$PWD":/work -w /work/axi4_stream_vip modelsim:20.1 python3 run.py
 ```
 
 The VUnit runner compiles:

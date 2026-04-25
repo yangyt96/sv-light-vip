@@ -29,6 +29,7 @@ spi_vip/
 │   ├── spi_master_vip.sv
 │   └── spi_slave_vip.sv
 ├── tb/
+│   ├── spi_vip_tb.do
 │   └── spi_vip_tb.sv
 └── run.py
 ```

@@ -2,19 +2,20 @@
 
 ## Overview
 
-`axi4_lite_vip` is a lightweight AXI4-Lite Verification IP built in the same
-style as `axi4_stream_vip`. It uses simple SystemVerilog classes for manager and
-subordinate behavior and a VUnit regression for bring-up.
+`axi4_lite_vip` is a lightweight AXI4-Lite Verification IP written with
+SystemVerilog classes and verified with VUnit. It provides a class-based master
+API and a simple memory slave module for block-level bring-up without a full UVM
+environment.
 
-The package currently includes:
+The VIP currently includes:
 
-- a parameterized AXI4-Lite interface
-- a master VIP for blocking `write` and `read` accesses
-- a slave VIP for handling write/read requests and generating responses
-- configurable master pause generation
-- configurable slave backpressure
-- CLI transaction logging with named VIP instances
-- a pass-through DUT used to connect both VIPs in the testbench
+- A parameterized AXI4-Lite interface
+- A master VIP with blocking `write` and `read` tasks
+- A memory slave VIP with byte-enable support
+- Optional pause generation on the master side
+- Transaction logging to the simulator CLI
+- A VUnit testbench with write/read and byte-mask checks
+- A ModelSim waveform setup file
 
 ## Folder Structure
 
@@ -25,9 +26,9 @@ axi4_lite_vip/
 ├── sim/
 │   ├── axi4_lite_if.sv
 │   ├── axi4_lite_master_vip.sv
-│   └── axi4_lite_slave_vip.sv
+│   └── axi4_lite_mem_vip.sv
 ├── tb/
-│   ├── axi4_lite_dut.sv
+│   ├── axi4_lite_vip_tb.do
 │   └── axi4_lite_vip_tb.sv
 └── run.py
 ```
@@ -36,66 +37,46 @@ axi4_lite_vip/
 
 ### `axi4_lite_if.sv`
 
-Defines a parameterized AXI4-Lite interface with all five AXI4-Lite channels:
+Defines the five AXI4-Lite channels:
 
-- write address: `aw*`
-- write data: `w*`
-- write response: `b*`
-- read address: `ar*`
-- read data: `r*`
+- Write address: `awaddr`, `awprot`, `awvalid`, `awready`
+- Write data: `wdata`, `wstrb`, `wvalid`, `wready`
+- Write response: `bresp`, `bvalid`, `bready`
+- Read address: `araddr`, `arprot`, `arvalid`, `arready`
+- Read data: `rdata`, `rresp`, `rvalid`, `rready`
 
 ### `Axi4LiteMasterVIP`
 
-The master VIP models an AXI4-Lite manager.
+The master VIP drives AXI4-Lite transactions through a virtual interface.
 
 Main APIs:
 
 ```systemverilog
-master.write(addr, data, strb, resp);
-master.read(addr, data, resp);
+master.write(addr, data, strb, resp, prot);
+master.read(addr, data, resp, prot);
 ```
 
-Features:
-
-- parameterized address and data widths
-- optional pause generation before each transaction
-- named instances through the constructor
-- CLI logging for write and read activity
-
-### `Axi4LiteSlaveVIP`
-
-The slave VIP models an AXI4-Lite subordinate.
-
-Main APIs:
+Pause generation:
 
 ```systemverilog
-slave.handle_write(addr, data, strb, prot, resp);
-slave.handle_read(addr, prot, data, resp);
+master.configure_pause_generator(enable, min_cycles, max_cycles);
 ```
 
-Features:
+### `axi4_lite_mem_vip.sv`
 
-- parameterized address and data widths
-- optional backpressure/stall insertion
-- named instances through the constructor
-- CLI logging for write and read activity
+The memory VIP is a simple AXI4-Lite slave module. It stores 32-bit words and
+honors `wstrb` byte enables during writes.
 
 ## Testbench Summary
 
-The VUnit testbench:
+The VUnit testbench connects one master VIP directly to `axi4_lite_mem_vip`.
+It checks:
 
-- instantiates an upstream AXI4-Lite interface and downstream AXI4-Lite interface
-- places a simple pass-through DUT between them
-- drives the upstream side with `Axi4LiteMasterVIP`
-- services the downstream side with `Axi4LiteSlaveVIP`
-- checks both write and read transactions
-
-Current regression includes:
-
-- 32 write transactions
-- 32 read transactions
-- a no-stall phase
-- a phase with master pause generation and slave backpressure enabled
+- Multiple writes
+- Multiple reads
+- Readback data correctness
+- Byte-strobe masking
+- Master pause generation
 
 ## Running the Simulation
 
@@ -105,7 +86,8 @@ From the project root:
 python3 axi4_lite_vip/run.py
 ```
 
-The runner compiles:
+With Docker:
 
-- `axi4_lite_vip/sim/*.sv`
-- `axi4_lite_vip/tb/*.sv`
+```bash
+docker run --rm -v "$PWD":/work -w /work/axi4_lite_vip modelsim:20.1 python3 run.py
+```
