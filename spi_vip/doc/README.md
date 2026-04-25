@@ -69,11 +69,11 @@ slave_vip.transfer(tx_data, rx_data);
 From the project root:
 
 ```bash
-python3 spi_vip/run.py
+python3 spi_vip/tb/run.py
 ```
 
 With the provided Docker image:
 
 ```bash
-docker run --rm -v "$PWD":/work -w /work/spi_vip modelsim:20.1 python3 run.py
+docker run --rm -v "$PWD":/work -w /work/spi_vip/tb modelsim:20.1 python3 run.py
 ```

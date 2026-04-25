@@ -3,7 +3,7 @@ from pathlib import Path
 
 from vunit import VUnit
 
-ROOT = Path(__file__).parents[0]
+ROOT = Path(__file__).resolve().parents[1]
 
 argv = list(sys.argv[1:])
 
@@ -21,7 +21,7 @@ lib.add_source_files(
 
 lib.set_sim_option(
     name="modelsim.init_file.gui",
-    value=str(ROOT / "tb/i2c_vip_tb.do"),
+    value=str(ROOT / "tb/uart_vip_tb.do"),
 )
 
 vu.main()

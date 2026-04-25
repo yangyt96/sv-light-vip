@@ -3,7 +3,7 @@ from pathlib import Path
 
 from vunit import VUnit
 
-ROOT = Path(__file__).parents[0]
+ROOT = Path(__file__).resolve().parents[1]
 
 argv = list(sys.argv[1:])
 
@@ -13,15 +13,16 @@ vu.add_verilog_builtins()
 lib = vu.add_library("lib")
 lib.add_source_files(
     [
-        ROOT / "sim/*.sv",
-        ROOT / "tb/*.sv",
+        ROOT / "tb/axi4_full_vip_tb.sv",
     ],
     include_dirs=[(ROOT / "sim").as_posix()],
 )
 
 lib.set_sim_option(
     name="modelsim.init_file.gui",
-    value=str(ROOT / "tb/axi4_lite_vip_tb.do"),
+    value=str(ROOT / "tb/axi4_full_vip_tb.do"),
 )
+
+vu.set_compile_option("modelsim.vlog_flags", ["-sv"])
 
 vu.main()

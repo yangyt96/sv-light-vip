@@ -22,19 +22,19 @@ protocol README under `doc/`.
 From the repository root, run a VIP with:
 
 ```bash
-python3 <vip_name>/run.py
+python3 <vip_name>/tb/run.py
 ```
 
 With the provided Docker image:
 
 ```bash
-docker run --rm -v "$PWD":/work -w /work/<vip_name> modelsim:20.1 python3 run.py
+docker run --rm -v "$PWD":/work -w /work/<vip_name>/tb modelsim:20.1 python3 run.py
 ```
 
 Example:
 
 ```bash
-docker run --rm -v "$PWD":/work -w /work/i2c_vip modelsim:20.1 python3 run.py
+docker run --rm -v "$PWD":/work -w /work/i2c_vip/tb modelsim:20.1 python3 run.py
 ```
 
 ## GUI Use

@@ -82,11 +82,11 @@ The VUnit testbench connects `Axi4FullMasterVIP` directly to
 From the project root:
 
 ```bash
-python3 axi4_full_vip/run.py
+python3 axi4_full_vip/tb/run.py
 ```
 
 With Docker:
 
 ```bash
-docker run --rm -v "$PWD":/work -w /work/axi4_full_vip modelsim:20.1 python3 run.py
+docker run --rm -v "$PWD":/work -w /work/axi4_full_vip/tb modelsim:20.1 python3 run.py
 ```

@@ -71,11 +71,11 @@ slave_vip.respond_read(data, address_match, master_ack);
 From the project root:
 
 ```bash
-python3 i2c_vip/run.py
+python3 i2c_vip/tb/run.py
 ```
 
 With the provided Docker image:
 
 ```bash
-docker run --rm -v "$PWD":/work -w /work/i2c_vip modelsim:20.1 python3 run.py
+docker run --rm -v "$PWD":/work -w /work/i2c_vip/tb modelsim:20.1 python3 run.py
 ```

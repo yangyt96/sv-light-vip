@@ -76,11 +76,11 @@ optional extension if needed.
 From the project root:
 
 ```bash
-python3 uart_vip/run.py
+python3 uart_vip/tb/run.py
 ```
 
 With the provided Docker image:
 
 ```bash
-docker run --rm -v "$PWD":/work -w /work/uart_vip modelsim:20.1 python3 run.py
+docker run --rm -v "$PWD":/work -w /work/uart_vip/tb modelsim:20.1 python3 run.py
 ```
