@@ -17,6 +17,12 @@ protocol README under `doc/`.
 | `spi_vip` | Direct SPI master/slave VIP, no DUT |
 | `i2c_vip` | Direct I2C master/slave VIP with open-drain bus model, no DUT |
 
+## Docker Environment
+Build from here
+```
+https://github.com/yangyt96/docker-hdl-images/blob/master/modelsim-image/Dockerfile.modelsim
+```
+
 ## Running Regressions
 
 From the repository root, run a VIP with:
