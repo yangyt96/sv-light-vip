@@ -73,7 +73,7 @@ class ApbSlaveVIP #(
     vif.pslverr = slverr;
     vif.pready  = 1'b1;
     @(posedge vif.pclk);
-    @(posedge vif.pclk);
+    @(negedge vif.pclk);
     vif.pready  = 1'b0;
     vif.pslverr = 1'b0;
 
@@ -93,7 +93,7 @@ class ApbSlaveVIP #(
     vif.pslverr = slverr;
     vif.pready  = 1'b1;
     @(posedge vif.pclk);
-    @(posedge vif.pclk);
+    @(negedge vif.pclk);
     vif.pready  = 1'b0;
     vif.pslverr = 1'b0;
     vif.prdata  = '0;
