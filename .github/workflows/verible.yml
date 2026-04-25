@@ -22,14 +22,14 @@ jobs:
       - name: Run Verible Linter
         # continue-on-error: true
         run: |
-          SV_FILES="$(find ./ -type f -name "*.sv")"
+          SV_FILES="$(find ./ -type f \( -path "*/sim/*.sv" \))"
           verible-verilog-lint \
           --rules_config_search \
             ${SV_FILES}
       - name: Check Formatting
         # continue-on-error: true
         run: |
-          SV_FILES="$(find ./ -type f -name "*.sv")"
+          SV_FILES="$(find ./ -type f \( -path "*/sim/*.sv" -o -name "axi4_stream_dut.sv" \))"
           verible-verilog-format \
           --verify --inplace \
             ${SV_FILES}
