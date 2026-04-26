@@ -10,16 +10,14 @@ on:
 jobs:
   verible:
     runs-on: ubuntu-latest
-
-    # Use prebuilt container
-    container:
-      image: ghcr.io/mluckydwyer/hw-ci:slim
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+    container:
+      image: ghcr.io/mluckydwyer/hw-ci:slim
+
+    steps:
       - name: Run VUnit
-        # continue-on-error: true
         run: |
           find . -name "run.py" -print0 | xargs -0 -n1 python3
