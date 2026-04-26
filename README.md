@@ -52,14 +52,14 @@ Example:
 docker run --rm -v "$PWD":/work -w /work/i2c_vip/tb modelsim:20.1 python3 run.py
 ```
 
-Run all VIP regressions with the local ModelSim Docker image:
+Run all VIP regressions by invoking every `tb/run.py` from the repository root:
 
 ```bash
-python3 tools/run_all.py
+find . -path "*/tb/run.py" -print0 | sort -z | xargs -0 -n1 python3
 ```
 
-Use `python3 tools/run_all.py --mode native` to run each `tb/run.py` directly
-on the host, or `python3 tools/run_all.py --vip apb_vip` to run one VIP.
+This is the same pattern used by CI: each protocol testbench is still run by
+its own `tb/run.py`.
 
 ## GUI Use
 
