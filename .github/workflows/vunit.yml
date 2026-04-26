@@ -21,4 +21,6 @@ jobs:
           options: -v ${{ github.workspace }}:/workspace
           run: |
             cd /workspace
+            vsim -version
+            pip3 install vunit_hdl
             find . -name "run.py" -print0 | xargs -0 -n1 python3
