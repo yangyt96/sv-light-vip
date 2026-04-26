@@ -153,35 +153,39 @@ module axi4_lite_dut_tb;
     int unsigned idx;
     logic [ADDR_WIDTH-1:0] prev_addr;
 
-    master = new(s_axil_if.master, "axil_master_vip");
+    `TEST_SUITE_SETUP begin
+      master = new(s_axil_if.master, "axil_master_vip");
 
-    @(posedge rstn);
-    @(posedge clk);
-
-    master.configure_pause_generator(1'b0);
-    prev_addr = '0;
-    for (idx = 0; idx < WRITE_STIMULUS_CNT; idx++) begin
-      assert(build_write_addr(idx) != '0)
-        else $error("Write address stayed at zero for index %0d", idx);
-      if (idx > 0) begin
-        assert(build_write_addr(idx) != prev_addr)
-          else $error("Write address did not change at index %0d", idx);
-      end
-      run_write_transfer(idx);
-      prev_addr = build_write_addr(idx);
+      @(posedge rstn);
+      @(posedge clk);
     end
 
-    master.configure_pause_generator(1'b1, 1, 3);
-    prev_addr = '0;
-    for (idx = 0; idx < READ_STIMULUS_CNT; idx++) begin
-      assert(build_read_addr(idx) != '0)
-        else $error("Read address stayed at zero for index %0d", idx);
-      if (idx > 0) begin
-        assert(build_read_addr(idx) != prev_addr)
-          else $error("Read address did not change at index %0d", idx);
+    `TEST_CASE("Write then Read") begin
+      master.configure_pause_generator(1'b0);
+      prev_addr = '0;
+      for (idx = 0; idx < WRITE_STIMULUS_CNT; idx++) begin
+        assert(build_write_addr(idx) != '0)
+          else $error("Write address stayed at zero for index %0d", idx);
+        if (idx > 0) begin
+          assert(build_write_addr(idx) != prev_addr)
+            else $error("Write address did not change at index %0d", idx);
+        end
+        run_write_transfer(idx);
+        prev_addr = build_write_addr(idx);
       end
-      run_read_transfer(idx);
-      prev_addr = build_read_addr(idx);
+
+      master.configure_pause_generator(1'b1, 1, 3);
+      prev_addr = '0;
+      for (idx = 0; idx < READ_STIMULUS_CNT; idx++) begin
+        assert(build_read_addr(idx) != '0)
+          else $error("Read address stayed at zero for index %0d", idx);
+        if (idx > 0) begin
+          assert(build_read_addr(idx) != prev_addr)
+            else $error("Read address did not change at index %0d", idx);
+        end
+        run_read_transfer(idx);
+        prev_addr = build_read_addr(idx);
+      end
     end
   end
 

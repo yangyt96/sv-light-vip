@@ -207,28 +207,37 @@ module apb_vip_tb;
   end
 
   `TEST_SUITE begin
-    master_vip = new(apb_link.master, "master_vip");
-    slave_vip  = new(apb_link.slave, "slave_vip");
-    master_vip.idle();
-    slave_vip.idle();
+    `TEST_SUITE_SETUP begin
+      master_vip = new(apb_link.master, "master_vip");
+      slave_vip  = new(apb_link.slave, "slave_vip");
+      master_vip.idle();
+      slave_vip.idle();
 
-    @(posedge rstn);
-    @(posedge clk);
-
-    slave_vip.configure_ready_delay(0);
-    for (int unsigned idx = 0; idx < STIMULUS_COUNT; idx++) begin
-      run_write(idx);
-      run_read(idx);
+      @(posedge rstn);
+      @(posedge clk);
     end
 
-    slave_vip.configure_ready_delay(3);
-    for (int unsigned idx = 0; idx < 8; idx++) begin
-      run_write(idx + STIMULUS_COUNT);
-      run_read(idx + STIMULUS_COUNT);
+    `TEST_CASE("Basic Write-Read") begin
+      slave_vip.configure_ready_delay(0);
+      for (int unsigned idx = 0; idx < STIMULUS_COUNT; idx++) begin
+        run_write(idx);
+        run_read(idx);
+      end
     end
 
-    run_write_error(STIMULUS_COUNT + 8);
-    run_read_error(STIMULUS_COUNT + 9);
+    `TEST_CASE("Ready Delay Write-Read") begin
+      slave_vip.configure_ready_delay(3);
+      for (int unsigned idx = 0; idx < 8; idx++) begin
+        run_write(idx + STIMULUS_COUNT);
+        run_read(idx + STIMULUS_COUNT);
+      end
+    end
+
+    `TEST_CASE("Error Response") begin
+      slave_vip.configure_ready_delay(0);
+      run_write_error(STIMULUS_COUNT + 8);
+      run_read_error(STIMULUS_COUNT + 9);
+    end
   end
 
 endmodule

@@ -90,25 +90,31 @@ module uart_vip_tb;
     int unsigned stimulus_idx;
     int unsigned observed_count;
 
-    tx_vip = new(uart_link.transmitter, "tx_vip");
-    rx_vip = new(uart_link.receiver, "rx_vip");
-    tx_vip.idle();
+    `TEST_SUITE_SETUP begin
+      tx_vip = new(uart_link.transmitter, "tx_vip");
+      rx_vip = new(uart_link.receiver, "rx_vip");
+      tx_vip.idle();
 
-    @(posedge rstn);
-    @(posedge clk);
-
-    for (stimulus_idx = 0; stimulus_idx < STIMULUS_COUNT; stimulus_idx++) begin
-      run_frame(stimulus_idx);
+      @(posedge rstn);
+      @(posedge clk);
     end
 
-    fork
-      drive_frames(0, CONTINUOUS_FRAME_COUNT);
-      monitor_frames(0, CONTINUOUS_FRAME_COUNT, observed_count);
-    join
+    `TEST_CASE("SingleFrames") begin
+      for (stimulus_idx = 0; stimulus_idx < STIMULUS_COUNT; stimulus_idx++) begin
+        run_frame(stimulus_idx);
+      end
+    end
 
-    assert(observed_count == CONTINUOUS_FRAME_COUNT)
-      else $error("UART continuous count mismatch exp=%0d got=%0d",
-                  CONTINUOUS_FRAME_COUNT, observed_count);
+    `TEST_CASE("ContinuousFrames") begin
+      fork
+        drive_frames(0, CONTINUOUS_FRAME_COUNT);
+        monitor_frames(0, CONTINUOUS_FRAME_COUNT, observed_count);
+      join
+
+      assert(observed_count == CONTINUOUS_FRAME_COUNT)
+        else $error("UART continuous count mismatch exp=%0d got=%0d",
+                    CONTINUOUS_FRAME_COUNT, observed_count);
+    end
   end
 
 endmodule

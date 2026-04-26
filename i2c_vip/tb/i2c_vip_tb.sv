@@ -287,36 +287,54 @@ module i2c_vip_tb;
     int unsigned stimulus_idx;
     int unsigned observed_count;
 
-    master_vip = new(i2c_link.master, "master_vip");
-    slave_vip  = new(i2c_link.slave, SLAVE_ADDRESS, "slave_vip");
-    master_vip.idle();
-    slave_vip.idle();
+    `TEST_SUITE_SETUP begin
 
-    @(posedge rstn);
-    @(posedge clk);
+      master_vip = new(i2c_link.master, "master_vip");
+      slave_vip  = new(i2c_link.slave, SLAVE_ADDRESS, "slave_vip");
+      master_vip.idle();
+      slave_vip.idle();
 
-    // Original single-byte tests
-    for (stimulus_idx = 0; stimulus_idx < STIMULUS_COUNT; stimulus_idx++) begin
-      run_write(stimulus_idx);
-      run_read(stimulus_idx);
+      @(posedge rstn);
+      @(posedge clk);
     end
 
-    run_wrong_address_write();
+    `TEST_CASE("SingleByteWriteRead") begin
+      for (stimulus_idx = 0; stimulus_idx < STIMULUS_COUNT; stimulus_idx++) begin
+        run_write(stimulus_idx);
+        run_read(stimulus_idx);
+      end
+    end
 
-    fork
-      drive_reads(0, CONTINUOUS_TRANSFER_COUNT);
-      monitor_reads(0, CONTINUOUS_TRANSFER_COUNT, observed_count);
-    join
+    `TEST_CASE("WrongAddress") begin
+      run_wrong_address_write();
+    end
 
-    assert(observed_count == CONTINUOUS_TRANSFER_COUNT)
-      else $error("I2C continuous count mismatch exp=%0d got=%0d",
-                  CONTINUOUS_TRANSFER_COUNT, observed_count);
+    `TEST_CASE("ContinuousReads") begin
+      fork
+        drive_reads(0, CONTINUOUS_TRANSFER_COUNT);
+        monitor_reads(0, CONTINUOUS_TRANSFER_COUNT, observed_count);
+      join
 
-    // New feature tests
-    run_multi_byte_write();
-    run_multi_byte_read();
-    run_clock_stretching();
-    run_repeated_start();
+      assert(observed_count == CONTINUOUS_TRANSFER_COUNT)
+        else $error("I2C continuous count mismatch exp=%0d got=%0d",
+                    CONTINUOUS_TRANSFER_COUNT, observed_count);
+    end
+
+    `TEST_CASE("MultiByteWrite") begin
+      run_multi_byte_write();
+    end
+
+    `TEST_CASE("MultiByteRead") begin
+      run_multi_byte_read();
+    end
+
+    `TEST_CASE("ClockStretching") begin
+      run_clock_stretching();
+    end
+
+    `TEST_CASE("RepeatedStart") begin
+      run_repeated_start();
+    end
   end
 
 endmodule

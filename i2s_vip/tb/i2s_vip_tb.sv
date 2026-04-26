@@ -101,25 +101,31 @@ module i2s_vip_tb;
   `TEST_SUITE begin
     int unsigned observed_count;
 
-    tx_vip = new(i2s_link.transmitter, "tx_vip");
-    rx_vip = new(i2s_link.receiver, "rx_vip");
-    tx_vip.idle();
+    `TEST_SUITE_SETUP begin
+      tx_vip = new(i2s_link.transmitter, "tx_vip");
+      rx_vip = new(i2s_link.receiver, "rx_vip");
+      tx_vip.idle();
 
-    @(posedge rstn);
-    @(posedge clk);
-
-    for (int unsigned idx = 0; idx < STIMULUS_COUNT; idx++) begin
-      run_frame(idx);
+      @(posedge rstn);
+      @(posedge clk);
     end
 
-    fork
-      drive_frames(0, CONTINUOUS_FRAME_COUNT);
-      monitor_frames(0, CONTINUOUS_FRAME_COUNT, observed_count);
-    join
+    `TEST_CASE("SingleFrames") begin
+      for (int unsigned idx = 0; idx < STIMULUS_COUNT; idx++) begin
+        run_frame(idx);
+      end
+    end
 
-    assert(observed_count == CONTINUOUS_FRAME_COUNT)
-      else $error("I2S continuous count mismatch exp=%0d got=%0d",
-                  CONTINUOUS_FRAME_COUNT, observed_count);
+    `TEST_CASE("ContinuousFrames") begin
+      fork
+        drive_frames(0, CONTINUOUS_FRAME_COUNT);
+        monitor_frames(0, CONTINUOUS_FRAME_COUNT, observed_count);
+      join
+
+      assert(observed_count == CONTINUOUS_FRAME_COUNT)
+        else $error("I2S continuous count mismatch exp=%0d got=%0d",
+                    CONTINUOUS_FRAME_COUNT, observed_count);
+    end
   end
 
 endmodule

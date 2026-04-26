@@ -268,49 +268,60 @@ module axi4_stream_dut_tb;
     int unsigned observed_count;
     int unsigned observed_tlast_count;
 
-    master = new(s_axis_if.master, "master_vip");
-    slave  = new(m_axis_if.slave, "slave_vip");
+    `TEST_SUITE_SETUP begin
 
-    @(posedge rstn);
-    @(posedge clk);
+      master = new(s_axis_if.master, "master_vip");
+      slave  = new(m_axis_if.slave, "slave_vip");
 
-    master.configure_pause_generator(1'b0);
-    slave.configure_backpressure(1'b0);
-    for (stimulus_idx = 0; stimulus_idx < BASIC_STIMULUS_COUNT; stimulus_idx++) begin
-      run_transfer(stimulus_idx);
+      @(posedge rstn);
+      @(posedge clk);
     end
 
-    master.configure_pause_generator(1'b1, 1, 4);
-    slave.configure_backpressure(1'b0);
-    for (stimulus_idx = BASIC_STIMULUS_COUNT;
-         stimulus_idx < (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT);
-         stimulus_idx++) begin
-      run_transfer(stimulus_idx);
+    `TEST_CASE("BasicTransfers") begin
+      master.configure_pause_generator(1'b0);
+      slave.configure_backpressure(1'b0);
+      for (stimulus_idx = 0; stimulus_idx < BASIC_STIMULUS_COUNT; stimulus_idx++) begin
+        run_transfer(stimulus_idx);
+      end
     end
 
-    master.configure_pause_generator(1'b0);
-    slave.configure_backpressure(1'b1, 2, 6);
-    for (stimulus_idx = (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT);
-         stimulus_idx < (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT + BP_STIMULUS_COUNT);
-         stimulus_idx++) begin
-      run_transfer(stimulus_idx);
+    `TEST_CASE("PauseGenerator") begin
+      master.configure_pause_generator(1'b1, 1, 4);
+      slave.configure_backpressure(1'b0);
+      for (stimulus_idx = BASIC_STIMULUS_COUNT;
+           stimulus_idx < (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT);
+           stimulus_idx++) begin
+        run_transfer(stimulus_idx);
+      end
     end
 
-    master.configure_pause_generator(1'b0);
-    slave.configure_backpressure(1'b0);
-    fork
-      drive_stream(0, CONTINUOUS_STIMULUS_COUNT);
-      monitor_continuous_stream(CONTINUOUS_STIMULUS_COUNT,
-                                observed_count,
-                                observed_tlast_count);
-    join
+    `TEST_CASE("Backpressure") begin
+      master.configure_pause_generator(1'b0);
+      slave.configure_backpressure(1'b1, 2, 6);
+      for (stimulus_idx = (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT);
+           stimulus_idx < (BASIC_STIMULUS_COUNT + PAUSE_STIMULUS_COUNT + BP_STIMULUS_COUNT);
+           stimulus_idx++) begin
+        run_transfer(stimulus_idx);
+      end
+    end
 
-    assert(observed_count == CONTINUOUS_STIMULUS_COUNT)
-      else $error("Continuous stream count mismatch exp=%0d got=%0d",
-                  CONTINUOUS_STIMULUS_COUNT, observed_count);
-    assert(observed_tlast_count == (CONTINUOUS_STIMULUS_COUNT / 8))
-      else $error("Continuous stream TLAST count mismatch exp=%0d got=%0d",
-                  CONTINUOUS_STIMULUS_COUNT / 8, observed_tlast_count);
+    `TEST_CASE("ContinuousStream") begin
+      master.configure_pause_generator(1'b0);
+      slave.configure_backpressure(1'b0);
+      fork
+        drive_stream(0, CONTINUOUS_STIMULUS_COUNT);
+        monitor_continuous_stream(CONTINUOUS_STIMULUS_COUNT,
+                                  observed_count,
+                                  observed_tlast_count);
+      join
+
+      assert(observed_count == CONTINUOUS_STIMULUS_COUNT)
+        else $error("Continuous stream count mismatch exp=%0d got=%0d",
+                    CONTINUOUS_STIMULUS_COUNT, observed_count);
+      assert(observed_tlast_count == (CONTINUOUS_STIMULUS_COUNT / 8))
+        else $error("Continuous stream TLAST count mismatch exp=%0d got=%0d",
+                    CONTINUOUS_STIMULUS_COUNT / 8, observed_tlast_count);
+    end
   end
 
 endmodule
