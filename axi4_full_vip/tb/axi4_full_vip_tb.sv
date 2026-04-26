@@ -283,6 +283,123 @@ module axi4_full_vip_tb;
       expected_data = 32'h00CCBBAA;
       check_single_read(32'h5000, expected_data, 4'd6);
     end
+
+    `TEST_CASE("Multiple Outstanding Writes")
+    begin
+      logic [1:0] resp[4];
+      logic [31:0] data[1];
+      logic [3:0]  strb[1];
+      $display("\n--- Test 7: Multiple Outstanding Writes ---");
+      fork
+        begin
+          master_vip.write_awchannel(.addr(32'h6000), .id(4'd0));
+          master_vip.write_awchannel(.addr(32'h6004), .id(4'd1));
+          master_vip.write_awchannel(.addr(32'h6008), .id(4'd2));
+          master_vip.write_awchannel(.addr(32'h600C), .id(4'd3));
+        end
+
+        begin
+          strb[0] = 4'hF;
+          for(int i = 0; i < 4; i++) begin
+            data[0] = 32'h11111111 * (i+1);
+            master_vip.write_wchannel(.data(data), .strb(strb));
+          end
+        end
+
+        begin
+          master_vip.write_bchannel(.resp(resp[0]));
+          master_vip.write_bchannel(.resp(resp[1]));
+          master_vip.write_bchannel(.resp(resp[2]));
+          master_vip.write_bchannel(.resp(resp[3]));
+        end
+      join
+      
+      for (int i = 0; i < 4; i++) begin
+        assert(resp[i] == 2'b00) else $error("Outstanding write response mismatch id=%0d resp=%0h", i, resp[i]);
+      end
+      
+      check_single_read(32'h6000, 32'h11111111, 4'd0);
+      check_single_read(32'h6004, 32'h22222222, 4'd1);
+      check_single_read(32'h6008, 32'h33333333, 4'd2);
+      check_single_read(32'h600C, 32'h44444444, 4'd3);
+    end
+
+    `TEST_CASE("Multiple Outstanding Reads")
+    begin
+      logic [DATA_WIDTH-1:0] rd_data[4];
+      logic [DATA_WIDTH-1:0] data[];
+      logic [1:0] rd_resp[4];
+      logic [1:0] resp[];
+      data = new[1];
+      resp = new[1];
+      $display("\n--- Test 8: Multiple Outstanding Reads ---");
+      
+      master_vip.write(.addr(32'h6000), .data(32'h11111111), .resp(resp[0]));
+      master_vip.write(.addr(32'h6004), .data(32'h22222222), .resp(resp[0]));
+      master_vip.write(.addr(32'h6008), .data(32'h33333333), .resp(resp[0]));
+      master_vip.write(.addr(32'h600C), .data(32'h44444444), .resp(resp[0]));
+
+      fork
+
+        begin
+          master_vip.read_archannel(.addr(32'h6000), .id(4'd0));
+          master_vip.read_archannel(.addr(32'h6004), .id(4'd1));
+          master_vip.read_archannel(.addr(32'h6008), .id(4'd2));
+          master_vip.read_archannel(.addr(32'h600C), .id(4'd3));
+        end
+
+        begin
+          for(int i = 0; i < 4; i++) begin
+            master_vip.read_rchannel(.data(data), .resp(resp), .id(i));
+            rd_data[i] = data[0];
+            rd_resp[i] = resp[0];
+          end
+        end
+
+      join
+
+      for (int i = 0; i < 4; i++) begin
+        assert(rd_resp[i] == 2'b00) else $error("Outstanding read response mismatch id=%0d resp=%0h", i, rd_resp[i]);
+      end
+      
+      assert(rd_data[0] == 32'h11111111) else $error("Outstanding read data mismatch id=0 exp=%h got=%h", 32'h11111111, rd_data[0]);
+      assert(rd_data[1] == 32'h22222222) else $error("Outstanding read data mismatch id=1 exp=%h got=%h", 32'h22222222, rd_data[1]);
+      assert(rd_data[2] == 32'h33333333) else $error("Outstanding read data mismatch id=2 exp=%h got=%h", 32'h33333333, rd_data[2]);
+      assert(rd_data[3] == 32'h44444444) else $error("Outstanding read data mismatch id=3 exp=%h got=%h", 32'h44444444, rd_data[3]);
+    end
+
+    `TEST_CASE("Mixed Outstanding Read-Write")
+    begin
+      logic [1:0] wr_resp[2];
+      logic [DATA_WIDTH-1:0] rd_data[2];
+      logic [1:0] rd_resp[2];
+      $display("\n--- Test 9: Mixed Outstanding Read-Write ---");
+
+      // init mem
+      master_vip.write(.addr(32'h6000), .data(32'h11111111), .strb(4'hF), .id(4'd0), .resp(wr_resp[0]));
+      master_vip.write(.addr(32'h6004), .data(32'h22222222), .strb(4'hF), .id(4'd0), .resp(wr_resp[0]));
+
+      // start test
+      fork
+        master_vip.write(.addr(32'h7000), .data(32'hAABBCCDD), .strb(4'hF), .id(4'd0), .resp(wr_resp[0]));
+        master_vip.read(.addr(32'h6000), .data(rd_data[0]), .resp(rd_resp[0]), .id(4'd1));
+      join
+      fork
+        master_vip.write(.addr(32'h7004), .data(32'h11223344), .strb(4'hF), .id(4'd2), .resp(wr_resp[1]));
+        master_vip.read(.addr(32'h6004), .data(rd_data[1]), .resp(rd_resp[1]), .id(4'd3));
+      join
+      
+      for (int i = 0; i < 2; i++) begin
+        assert(wr_resp[i] == 2'b00) else $error("Mixed outstanding write response mismatch id=%0d resp=%0h", i, wr_resp[i]);
+        assert(rd_resp[i] == 2'b00) else $error("Mixed outstanding read response mismatch id=%0d resp=%0h", i, rd_resp[i]);
+      end
+      
+      assert(rd_data[0] == 32'h11111111) else $error("Mixed outstanding read data mismatch id=1 exp=%h got=%h", 32'h11111111, rd_data[0]);
+      assert(rd_data[1] == 32'h22222222) else $error("Mixed outstanding read data mismatch id=3 exp=%h got=%h", 32'h22222222, rd_data[1]);
+      
+      check_single_read(32'h7000, 32'hAABBCCDD, 4'd0);
+      check_single_read(32'h7004, 32'h11223344, 4'd2);
+    end
   end
 
 endmodule

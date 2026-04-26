@@ -166,10 +166,13 @@ module axi4_full_mem_vip #(
     end
   end
 
+  assign s_axi_awready = (!wr_active && !s_axi_bvalid);
+  assign s_axi_wready  = wr_active;
+
   always_ff @(posedge aclk or negedge aresetn) begin
     if (!aresetn) begin
-      s_axi_awready  <= 1'b0;
-      s_axi_wready   <= 1'b0;
+      // s_axi_awready  <= 1'b0;
+      // s_axi_wready   <= 1'b0;
       s_axi_bid      <= '0;
       s_axi_bresp    <= AXI_RESP_OKAY;
       s_axi_buser    <= '0;
@@ -182,8 +185,6 @@ module axi4_full_mem_vip #(
       wr_beat_count  <= 0;
       wr_active      <= 1'b0;
     end else begin
-      s_axi_awready <= (!wr_active && !s_axi_bvalid);
-      s_axi_wready  <= wr_active;
 
       if (s_axi_awvalid && s_axi_awready) begin
         wr_id          <= s_axi_awid;
@@ -216,9 +217,10 @@ module axi4_full_mem_vip #(
     end
   end
 
+  assign s_axi_arready = (!rd_active && !s_axi_rvalid);
+
   always_ff @(posedge aclk or negedge aresetn) begin
     if (!aresetn) begin
-      s_axi_arready  <= 1'b0;
       s_axi_rid      <= '0;
       s_axi_rdata    <= '0;
       s_axi_rresp    <= AXI_RESP_OKAY;
@@ -233,7 +235,6 @@ module axi4_full_mem_vip #(
       rd_beat_count  <= 0;
       rd_active      <= 1'b0;
     end else begin
-      s_axi_arready <= (!rd_active && !s_axi_rvalid);
 
       if (s_axi_arvalid && s_axi_arready) begin
         rd_id          <= s_axi_arid;

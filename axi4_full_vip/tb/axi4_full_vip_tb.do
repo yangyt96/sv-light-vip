@@ -69,22 +69,22 @@ add wave -noupdate -color Magenta /axi4_full_vip_tb/mem_vip/s_axi_ruser
 add wave -noupdate -color Magenta /axi4_full_vip_tb/mem_vip/s_axi_rvalid
 add wave -noupdate -color Magenta /axi4_full_vip_tb/mem_vip/s_axi_rready
 add wave -noupdate /axi4_full_vip_tb/mem_vip/mem
-add wave -noupdate /axi4_full_vip_tb/mem_vip/wr_id
-add wave -noupdate /axi4_full_vip_tb/mem_vip/wr_addr
-add wave -noupdate /axi4_full_vip_tb/mem_vip/wr_size
-add wave -noupdate /axi4_full_vip_tb/mem_vip/wr_burst
-add wave -noupdate /axi4_full_vip_tb/mem_vip/wr_beats_total
-add wave -noupdate /axi4_full_vip_tb/mem_vip/wr_beat_count
-add wave -noupdate /axi4_full_vip_tb/mem_vip/wr_active
-add wave -noupdate /axi4_full_vip_tb/mem_vip/rd_id
-add wave -noupdate /axi4_full_vip_tb/mem_vip/rd_addr
-add wave -noupdate /axi4_full_vip_tb/mem_vip/rd_size
-add wave -noupdate /axi4_full_vip_tb/mem_vip/rd_burst
-add wave -noupdate /axi4_full_vip_tb/mem_vip/rd_beats_total
-add wave -noupdate /axi4_full_vip_tb/mem_vip/rd_beat_count
-add wave -noupdate /axi4_full_vip_tb/mem_vip/rd_active
+add wave -noupdate -color Orchid /axi4_full_vip_tb/mem_vip/wr_id
+add wave -noupdate -color Orchid /axi4_full_vip_tb/mem_vip/wr_addr
+add wave -noupdate -color Orchid /axi4_full_vip_tb/mem_vip/wr_size
+add wave -noupdate -color Orchid /axi4_full_vip_tb/mem_vip/wr_burst
+add wave -noupdate -color Orchid /axi4_full_vip_tb/mem_vip/wr_beats_total
+add wave -noupdate -color Orchid /axi4_full_vip_tb/mem_vip/wr_beat_count
+add wave -noupdate -color Orchid /axi4_full_vip_tb/mem_vip/wr_active
+add wave -noupdate -color {Lime Green} /axi4_full_vip_tb/mem_vip/rd_id
+add wave -noupdate -color {Lime Green} /axi4_full_vip_tb/mem_vip/rd_addr
+add wave -noupdate -color {Lime Green} /axi4_full_vip_tb/mem_vip/rd_size
+add wave -noupdate -color {Lime Green} /axi4_full_vip_tb/mem_vip/rd_burst
+add wave -noupdate -color {Lime Green} /axi4_full_vip_tb/mem_vip/rd_beats_total
+add wave -noupdate -color {Lime Green} /axi4_full_vip_tb/mem_vip/rd_beat_count
+add wave -noupdate -color {Lime Green} /axi4_full_vip_tb/mem_vip/rd_active
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {363490 ps} 0}
+WaveRestoreCursors {{Cursor 1} {255000 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 525
 configure wave -valuecolwidth 100
@@ -100,4 +100,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits us
 update
-WaveRestoreZoom {0 ps} {460679 ps}
+WaveRestoreZoom {0 ps} {863774 ps}
