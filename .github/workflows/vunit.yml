@@ -17,7 +17,7 @@ jobs:
       - name: Run VUnit inside container
         uses: addnab/docker-run-action@v3
         with:
-          image: ghcr.io/mluckydwyer/hw-ci:slim
+          image: ghcr.io/mluckydwyer/hw-ci:full
           options: -v ${{ github.workspace }}:/workspace
           run: |
             cd /workspace
