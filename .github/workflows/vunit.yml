@@ -21,9 +21,7 @@ jobs:
           options: -v ${{ github.workspace }}:/workspace
           run: |
             cd /workspace
-            ls /intelFPGA
-            find /intelFPGA -maxdepth 2 -type d -name bin
-            find /intelFPGA -type f -name vsim
+            find / -type f -name vsim -print -quit 2>/dev/null
             vsim -version
 # pip3 install vunit_hdl
 # find . -name "run.py" -print0 | xargs -0 -n1 python3
