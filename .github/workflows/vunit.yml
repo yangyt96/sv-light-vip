@@ -22,7 +22,10 @@ jobs:
           run: |
             cd /workspace
             find / -type f -name vsim -print -quit 2>/dev/null
-            export PATH="/opt/intelFPGA/modelsim_ase/linuxaloem/vsim:${PATH}"
-            vsim -version
+            export PATH="/opt/intelFPGA/modelsim_ase/linuxaloem/:${PATH}"
+            echo $PATH
+            /opt/intelFPGA/modelsim_ase/linuxaloem/vsim -version
+            export VUNIT_MODELSIM_PATH=/opt/intelFPGA/modelsim_ase/linuxaloem/vsim
+            echo $VUNIT_MODELSIM_PATH
             pip3 install vunit_hdl
             find . -name "run.py" -print0 | xargs -0 -n1 python3
