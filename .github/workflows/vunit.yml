@@ -8,16 +8,17 @@ on:
       - master
 
 jobs:
-  verible:
+  vunit:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-    container:
-      image: ghcr.io/mluckydwyer/hw-ci:slim
-
-    steps:
-      - name: Run VUnit
-        run: |
-          find . -name "run.py" -print0 | xargs -0 -n1 python3
+      - name: Run VUnit inside container
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ghcr.io/mluckydwyer/hw-ci:slim
+          options: -v ${{ github.workspace }}:/workspace
+          run: |
+            cd /workspace
+            find . -name "run.py" -print0 | xargs -0 -n1 python3
