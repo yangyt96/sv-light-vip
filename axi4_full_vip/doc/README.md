@@ -61,6 +61,19 @@ master.write_burst(addr, data_array, strb_array, id, size, burst, prot, resp);
 master.read_burst(addr, beat_count, data_array, resp_array, id, size, burst, prot);
 ```
 
+Channel APIs (for fine-grained control):
+
+```systemverilog
+// Write channel APIs
+master.write_awchannel(addr, beat_count, id, size, burst, prot);
+master.write_wchannel(data_array, strb_array);
+master.write_bchannel(resp);
+
+// Read channel APIs
+master.read_archannel(addr, beat_count, id, size, burst, prot);
+master.read_rchannel(data_array, resp_array, id);
+```
+
 ### `axi4_full_mem_vip.sv`
 
 The memory VIP is a single-outstanding AXI4 slave. It stores data in a
