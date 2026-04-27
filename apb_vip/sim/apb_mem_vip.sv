@@ -46,8 +46,7 @@ module apb_mem_vip #(
   endfunction
 
   // Write a word to byte-addressed memory with byte strobes
-  task automatic write_word(input logic [ADDR_WIDTH-1:0] addr,
-                            input logic [DATA_WIDTH-1:0] data,
+  task automatic write_word(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
                             input logic [STRB_WIDTH-1:0] strb);
     for (int byte_idx = 0; byte_idx < STRB_WIDTH; byte_idx++) begin
       if (strb[byte_idx]) begin
@@ -111,19 +110,23 @@ module apb_mem_vip #(
           next_state = ST_IDLE;
         end
       end
+
+      default: begin
+        next_state = ST_IDLE;
+      end
     endcase
   end
 
   // Sequential logic
   always_ff @(posedge pclk or negedge presetn) begin
     if (!presetn) begin
-      state        <= ST_IDLE;
-      latched_addr <= '0;
+      state         <= ST_IDLE;
+      latched_addr  <= '0;
       latched_wdata <= '0;
       latched_strb  <= '0;
-      prdata       <= '0;
-      pready       <= 1'b0;
-      pslverr      <= 1'b0;
+      prdata        <= '0;
+      pready        <= 1'b0;
+      pslverr       <= 1'b0;
     end else begin
       state <= next_state;
 
@@ -160,6 +163,11 @@ module apb_mem_vip #(
             pready  <= 1'b1;
             pslverr <= 1'b0;
           end
+        end
+
+        default: begin
+          pready  <= 1'b0;
+          pslverr <= 1'b0;
         end
       endcase
     end
