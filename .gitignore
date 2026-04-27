@@ -1,2 +1,31 @@
-vunit_out
-__pycache__
+# VUnit output
+vunit_out/
+
+# Python cache
+__pycache__/
+.pytest_cache/
+
+# Simulation build artifacts
+sim_build/
+
+# ModelSim / Questa artifacts
+*.wlf
+transcript
+*.vstf
+*.vcd
+*.vcd.gz
+
+# Xilinx Vivado / ISE
+.Xil/
+
+# Log files
+*.jou
+*.log
+
+# Editor swap / backup files
+*.bak
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
