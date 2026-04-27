@@ -1,4 +1,6 @@
-// AXI4 Full memory VIP
+// axi4_full_mem_vip.sv
+// Hardware memory module (NOT a software class).
+// Must be `included and instantiated directly in the testbench.
 // Simple single-outstanding AXI4 slave with byte-addressed storage and burst support.
 
 `timescale 1ns / 1ps

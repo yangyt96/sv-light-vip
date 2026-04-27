@@ -1,5 +1,7 @@
 // axi4_lite_mem_vip.sv
-// Simple memory VIP that acts as a slave to store and read data
+// Hardware memory module (NOT a software class).
+// Must be `included and instantiated directly in the testbench.
+// Simple AXI4-Lite memory slave with byte-addressed storage.
 // Parameterized for ADDR_WIDTH, DATA_WIDTH, and STRB_WIDTH
 
 `timescale 1ns / 1ps
