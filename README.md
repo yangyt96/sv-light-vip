@@ -72,11 +72,6 @@ Run a VIP inside Docker:
 ```bash
 docker run --rm -v "$PWD":/work -w /work/<vip_name>/tb modelsim:20.1 python3 run.py
 ```
-Example:
-
-```bash
-docker run --rm -v "$PWD":/work -w /work/i2c_vip/tb modelsim:20.1 python3 run.py
-```
 
 ## 🖥️ ModelSim GUI (via Docker)
 
@@ -88,12 +83,6 @@ docker run -it --rm \
   -v "$PWD":/work \
   -w /work \
   modelsim:20.1
-```
-
-Most VIPs include a tb/*.do waveform setup file, automatically loaded via:
-
-```Code
-modelsim.init_file.gui
 ```
 
 ## 🧩 Project Philosophy
