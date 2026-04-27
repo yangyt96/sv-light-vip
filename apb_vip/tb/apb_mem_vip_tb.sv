@@ -267,6 +267,99 @@ module apb_mem_vip_tb;
         else $error("Mem VIP boundary read wrapped mismatch exp=%h got=%h", wr_data, rd_data);
     end
 
+    `TEST_CASE("Mem VIP Random Access Stress") begin
+      logic [ADDR_WIDTH-1:0] addr;
+      logic [DATA_WIDTH-1:0] wr_data;
+      logic [DATA_WIDTH-1:0] rd_data;
+      logic [STRB_WIDTH-1:0] strb;
+      bit slverr;
+
+      for (int unsigned iter = 0; iter < 64; iter++) begin
+        addr    = ADDR_WIDTH'($urandom_range(16'h3FFF, 16'h0000));
+        wr_data = DATA_WIDTH'($urandom);
+        strb    = STRB_WIDTH'($urandom);
+        if (strb == '0) strb = '1;  // Ensure at least one byte strobe
+
+        master_vip.write(addr, wr_data, strb, slverr, '0);
+        assert(!slverr) else $error("Mem VIP random write returned error at iter %0d", iter);
+
+        master_vip.read(addr, rd_data, slverr, '0);
+        assert(!slverr) else $error("Mem VIP random read returned error at iter %0d", iter);
+
+        // Apply strobe mask to expected data
+        for (int byte_idx = 0; byte_idx < STRB_WIDTH; byte_idx++) begin
+          if (!strb[byte_idx]) begin
+            rd_data[8*byte_idx +: 8] = '0;
+          end
+        end
+        wr_data = apply_wstrb(wr_data, strb);
+
+        assert(rd_data == wr_data)
+          else $error("Mem VIP random access mismatch at iter %0d addr=%h exp=%h got=%h strb=%h",
+                      iter, addr, wr_data, rd_data, strb);
+      end
+      $display("[%0t] Mem VIP random access stress completed: 64 iterations", $time);
+    end
+
+    `TEST_CASE("Mem VIP Back-to-Back Transactions") begin
+      logic [ADDR_WIDTH-1:0] addr;
+      logic [DATA_WIDTH-1:0] wr_data;
+      logic [DATA_WIDTH-1:0] rd_data;
+      bit slverr;
+
+      // Write then immediately read the same address (no idle between)
+      for (int unsigned idx = 0; idx < 32; idx++) begin
+        addr    = build_addr(idx);
+        wr_data = build_data(idx);
+
+        master_vip.write(addr, wr_data, '1, slverr, '0);
+        assert(!slverr) else $error("Mem VIP b2b write returned error at %0d", idx);
+
+        master_vip.read(addr, rd_data, slverr, '0);
+        assert(!slverr) else $error("Mem VIP b2b read returned error at %0d", idx);
+        assert(rd_data == wr_data)
+          else $error("Mem VIP b2b mismatch at %0d exp=%h got=%h", idx, wr_data, rd_data);
+      end
+      $display("[%0t] Mem VIP back-to-back transactions completed: 32 iterations", $time);
+    end
+
+    `TEST_CASE("Mem VIP Initial State Zero") begin
+      logic [ADDR_WIDTH-1:0] addr;
+      logic [DATA_WIDTH-1:0] rd_data;
+      bit slverr;
+
+      // Verify memory is zero after initial reset (before any writes)
+      for (int unsigned idx = 0; idx < 16; idx++) begin
+        addr = build_addr(idx);
+        master_vip.read(addr, rd_data, slverr, '0);
+        assert(!slverr) else $error("Mem VIP initial-state read returned error at %0d", idx);
+        assert(rd_data == '0)
+          else $error("Mem VIP initial-state: memory not zero at %0d addr=%h got=%h",
+                      idx, addr, rd_data);
+      end
+      $display("[%0t] Mem VIP initial state verified: 16 locations zero after reset", $time);
+    end
+
+    `TEST_CASE("Mem VIP Idle No Activity") begin
+      logic [DATA_WIDTH-1:0] rd_data;
+      bit slverr;
+      int idle_cycles;
+
+      // Keep bus idle for many cycles, verify no spurious activity
+      master_vip.idle();
+      idle_cycles = 0;
+      repeat (100) begin
+        @(posedge clk);
+        idle_cycles++;
+        // prdata should remain 0 when idle (mem_vip drives it)
+        if (apb_link.prdata !== '0) begin
+          $error("Mem VIP idle: unexpected prdata=%h at cycle %0d", apb_link.prdata, idle_cycles);
+        end
+      end
+      $display("[%0t] Mem VIP idle no activity verified: %0d cycles with no spurious bus activity",
+               $time, idle_cycles);
+    end
+
   end
 
 endmodule
