@@ -126,6 +126,121 @@ module i2s_vip_tb;
         else $error("I2S continuous count mismatch exp=%0d got=%0d",
                     CONTINUOUS_FRAME_COUNT, observed_count);
     end
+
+    `TEST_CASE("BoundaryValues") begin
+      logic [SAMPLE_WIDTH-1:0] exp_left;
+      logic [SAMPLE_WIDTH-1:0] exp_right;
+      logic [SAMPLE_WIDTH-1:0] rx_left;
+      logic [SAMPLE_WIDTH-1:0] rx_right;
+      bit frame_error;
+
+      // Test all-zeros
+      exp_left  = '0;
+      exp_right = '0;
+      fork
+        tx_vip.transmit(exp_left, exp_right);
+        rx_vip.receive(rx_left, rx_right, frame_error);
+      join
+      assert(!frame_error) else $error("I2S boundary: frame error on all-zeros");
+      assert(rx_left == exp_left)
+        else $error("I2S boundary: left mismatch on all-zeros exp=%h got=%h", exp_left, rx_left);
+      assert(rx_right == exp_right)
+        else $error("I2S boundary: right mismatch on all-zeros exp=%h got=%h", exp_right, rx_right);
+      #(INTER_TRANSACTION_PAUSE);
+
+      // Test all-ones
+      exp_left  = '1;
+      exp_right = '1;
+      fork
+        tx_vip.transmit(exp_left, exp_right);
+        rx_vip.receive(rx_left, rx_right, frame_error);
+      join
+      assert(!frame_error) else $error("I2S boundary: frame error on all-ones");
+      assert(rx_left == exp_left)
+        else $error("I2S boundary: left mismatch on all-ones exp=%h got=%h", exp_left, rx_left);
+      assert(rx_right == exp_right)
+        else $error("I2S boundary: right mismatch on all-ones exp=%h got=%h", exp_right, rx_right);
+      #(INTER_TRANSACTION_PAUSE);
+
+      // Test alternating 0xAAAA / 0x5555
+      exp_left  = SAMPLE_WIDTH'({8'hAA, 8'hAA});
+      exp_right = SAMPLE_WIDTH'({8'h55, 8'h55});
+      fork
+        tx_vip.transmit(exp_left, exp_right);
+        rx_vip.receive(rx_left, rx_right, frame_error);
+      join
+      assert(!frame_error) else $error("I2S boundary: frame error on alternating");
+      assert(rx_left == exp_left)
+        else $error("I2S boundary: left mismatch on alternating exp=%h got=%h", exp_left, rx_left);
+      assert(rx_right == exp_right)
+        else $error("I2S boundary: right mismatch on alternating exp=%h got=%h", exp_right, rx_right);
+      #(INTER_TRANSACTION_PAUSE);
+
+      // Test left-only (right=0)
+      exp_left  = SAMPLE_WIDTH'(16'hDEAD);
+      exp_right = '0;
+      fork
+        tx_vip.transmit(exp_left, exp_right);
+        rx_vip.receive(rx_left, rx_right, frame_error);
+      join
+      assert(!frame_error) else $error("I2S boundary: frame error on left-only");
+      assert(rx_left == exp_left)
+        else $error("I2S boundary: left mismatch on left-only exp=%h got=%h", exp_left, rx_left);
+      assert(rx_right == exp_right)
+        else $error("I2S boundary: right mismatch on left-only exp=%h got=%h", exp_right, rx_right);
+      #(INTER_TRANSACTION_PAUSE);
+
+      // Test right-only (left=0)
+      exp_left  = '0;
+      exp_right = SAMPLE_WIDTH'(16'hBEEF);
+      fork
+        tx_vip.transmit(exp_left, exp_right);
+        rx_vip.receive(rx_left, rx_right, frame_error);
+      join
+      assert(!frame_error) else $error("I2S boundary: frame error on right-only");
+      assert(rx_left == exp_left)
+        else $error("I2S boundary: left mismatch on right-only exp=%h got=%h", exp_left, rx_left);
+      assert(rx_right == exp_right)
+        else $error("I2S boundary: right mismatch on right-only exp=%h got=%h", exp_right, rx_right);
+
+      $display("[%0t] I2S boundary values test completed: 5 patterns", $time);
+    end
+
+    `TEST_CASE("DifferentBclkRate") begin
+      I2STxVIP #(SAMPLE_WIDTH, 2) fast_tx;
+      I2SRxVIP #(SAMPLE_WIDTH)    fast_rx;
+      logic [SAMPLE_WIDTH-1:0] exp_left;
+      logic [SAMPLE_WIDTH-1:0] exp_right;
+      logic [SAMPLE_WIDTH-1:0] rx_left;
+      logic [SAMPLE_WIDTH-1:0] rx_right;
+      bit frame_error;
+
+      fast_tx = new(i2s_link.transmitter, "fast_tx");
+      fast_rx = new(i2s_link.receiver, "fast_rx");
+      fast_tx.idle();
+
+      @(posedge clk);
+
+      // Test with faster BCLK (HALF_BCLK_CYCLES=2 instead of 4)
+      for (int unsigned idx = 0; idx < 8; idx++) begin
+        exp_left  = build_left(idx + 100);
+        exp_right = build_right(idx + 100);
+
+        fork
+          fast_tx.transmit(exp_left, exp_right);
+          fast_rx.receive(rx_left, rx_right, frame_error);
+        join
+
+        assert(!frame_error) else $error("I2S fast BCLK: frame error at %0d", idx);
+        assert(rx_left == exp_left)
+          else $error("I2S fast BCLK: left mismatch at %0d exp=%h got=%h", idx, exp_left, rx_left);
+        assert(rx_right == exp_right)
+          else $error("I2S fast BCLK: right mismatch at %0d exp=%h got=%h", idx, exp_right, rx_right);
+
+        #(INTER_TRANSACTION_PAUSE);
+      end
+      $display("[%0t] I2S different BCLK rate test completed: 8 frames at HALF_BCLK_CYCLES=2", $time);
+    end
   end
 
 endmodule
