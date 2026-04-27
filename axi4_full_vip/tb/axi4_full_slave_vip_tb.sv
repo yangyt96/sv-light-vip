@@ -214,8 +214,7 @@ module axi4_full_slave_vip_tb;
       $display("\n--- Test 4: Backpressure Write (AW stall 1-3, W stall 0-2) ---");
 
       slave_vip.configure_backpressure(
-        .enable_aw(1'b1), .min_aw(1), .max_aw(3),
-        .enable_w(1'b1),  .min_w(0),  .max_w(2)
+        .enable(1'b1), .min_cycles(0), .max_cycles(3)
       );
 
       wr_data = new[1];
@@ -248,8 +247,7 @@ module axi4_full_slave_vip_tb;
       $display("\n--- Test 5: Backpressure Read (AR stall 2-5, R stall 1-3) ---");
 
       slave_vip.configure_backpressure(
-        .enable_ar(1'b1), .min_ar(2), .max_ar(5),
-        .enable_r(1'b1),  .min_r(1),  .max_r(3)
+        .enable(1'b1), .min_cycles(1), .max_cycles(5)
       );
 
       // Use separate array for slave to avoid race with master writing rd_data
@@ -348,13 +346,8 @@ module axi4_full_slave_vip_tb;
 
       $display("\n--- Test 7: Mixed Backpressure All Channels ---");
 
-      // Enable backpressure on all channels
       slave_vip.configure_backpressure(
-        .enable_aw(1'b1), .min_aw(1), .max_aw(4),
-        .enable_w(1'b1),  .min_w(0),  .max_w(2),
-        .enable_ar(1'b1), .min_ar(1), .max_ar(3),
-        .enable_b(1'b1),  .min_b(0),  .max_b(2),
-        .enable_r(1'b1),  .min_r(1),  .max_r(3)
+        .enable(1'b1), .min_cycles(0), .max_cycles(3)
       );
 
       // Write

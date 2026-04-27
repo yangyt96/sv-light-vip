@@ -49,32 +49,10 @@ class Axi4FullSlaveVIP #(
   ).slave vif;
 
   string vip_name;
+  bit enable_backpressure;
+  int unsigned min_stall_cycles;
+  int unsigned max_stall_cycles;
   int unsigned timeout_cycles;
-
-  // Backpressure control for write address channel
-  bit enable_aw_backpressure;
-  int unsigned min_aw_stall;
-  int unsigned max_aw_stall;
-
-  // Backpressure control for write data channel
-  bit enable_w_backpressure;
-  int unsigned min_w_stall;
-  int unsigned max_w_stall;
-
-  // Backpressure control for read address channel
-  bit enable_ar_backpressure;
-  int unsigned min_ar_stall;
-  int unsigned max_ar_stall;
-
-  // Backpressure control for write response channel
-  bit enable_b_backpressure;
-  int unsigned min_b_stall;
-  int unsigned max_b_stall;
-
-  // Backpressure control for read data channel
-  bit enable_r_backpressure;
-  int unsigned min_r_stall;
-  int unsigned max_r_stall;
 
   function new(
       virtual axi4_full_if #(
@@ -99,87 +77,31 @@ class Axi4FullSlaveVIP #(
       string vip_name = "axi4_full_slave_vip");
     this.vif       = vif;
     this.vip_name  = vip_name;
+    enable_backpressure = 1'b0;
+    min_stall_cycles       = 0;
+    max_stall_cycles       = 0;
     timeout_cycles = 1000;
-
-    enable_aw_backpressure = 1'b0;
-    min_aw_stall           = 0;
-    max_aw_stall           = 0;
-
-    enable_w_backpressure  = 1'b0;
-    min_w_stall            = 0;
-    max_w_stall            = 0;
-
-    enable_ar_backpressure = 1'b0;
-    min_ar_stall           = 0;
-    max_ar_stall           = 0;
-
-    enable_b_backpressure  = 1'b0;
-    min_b_stall            = 0;
-    max_b_stall            = 0;
-
-    enable_r_backpressure  = 1'b0;
-    min_r_stall            = 0;
-    max_r_stall            = 0;
   endfunction
 
   // Configure backpressure for all channels
-  function void configure_backpressure(
-      bit enable_aw = 1'b0, int unsigned min_aw = 0, int unsigned max_aw = 0,
-      bit enable_w  = 1'b0, int unsigned min_w  = 0, int unsigned max_w  = 0,
-      bit enable_ar = 1'b0, int unsigned min_ar = 0, int unsigned max_ar = 0,
-      bit enable_b  = 1'b0, int unsigned min_b  = 0, int unsigned max_b  = 0,
-      bit enable_r  = 1'b0, int unsigned min_r  = 0, int unsigned max_r  = 0);
-    enable_aw_backpressure = enable_aw;
-    min_aw_stall           = min_aw;
-    max_aw_stall           = (max_aw < min_aw) ? min_aw : max_aw;
-
-    enable_w_backpressure  = enable_w;
-    min_w_stall            = min_w;
-    max_w_stall            = (max_w < min_w) ? min_w : max_w;
-
-    enable_ar_backpressure = enable_ar;
-    min_ar_stall           = min_ar;
-    max_ar_stall           = (max_ar < min_ar) ? min_ar : max_ar;
-
-    enable_b_backpressure  = enable_b;
-    min_b_stall            = min_b;
-    max_b_stall            = (max_b < min_b) ? min_b : max_b;
-
-    enable_r_backpressure  = enable_r;
-    min_r_stall            = min_r;
-    max_r_stall            = (max_r < min_r) ? min_r : max_r;
+  function void configure_backpressure(bit enable = 1'b0,  int unsigned min_cycles = 0,
+                                       int unsigned max_cycles = 0);
+    enable_backpressure = enable;
+    min_stall_cycles = min_cycles;
+    max_stall_cycles = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
   function void configure_timeout(int unsigned cycles);
     timeout_cycles = cycles;
   endfunction
 
-  // Get stall cycles for a specific channel
-  function automatic int unsigned get_aw_stall();
-    if (enable_aw_backpressure) return $urandom_range(max_aw_stall, min_aw_stall);
-    else return 0;
-  endfunction
-
-  function automatic int unsigned get_w_stall();
-    if (enable_w_backpressure) return $urandom_range(max_w_stall, min_w_stall);
-    else return 0;
-  endfunction
-
-  function automatic int unsigned get_ar_stall();
-    if (enable_ar_backpressure) return $urandom_range(max_ar_stall, min_ar_stall);
-    else return 0;
-  endfunction
-
-  function automatic int unsigned get_b_stall();
-    if (enable_b_backpressure) return $urandom_range(max_b_stall, min_b_stall);
-    else return 0;
-  endfunction
-
-  function automatic int unsigned get_r_stall();
-    if (enable_r_backpressure) return $urandom_range(max_r_stall, min_r_stall);
-    else return 0;
-  endfunction
-
+  task automatic apply_stall();
+    int unsigned stall_cycles;
+    if (enable_backpressure) begin
+      stall_cycles = $urandom_range(max_stall_cycles, min_stall_cycles);
+      repeat (stall_cycles) @(posedge vif.aclk);
+    end
+  endtask
   task automatic wait_reset_release();
     int unsigned cycles;
     cycles = 0;
@@ -220,12 +142,10 @@ class Axi4FullSlaveVIP #(
       output logic [ BURST_WIDTH-1:0] burst,
       output logic [  PROT_WIDTH-1:0] prot);
     int unsigned cycles;
-    int unsigned stall;
 
     wait_reset_release();
 
-    stall = get_aw_stall();
-    repeat (stall) @(posedge vif.aclk);
+    apply_stall();
 
     cycles = 0;
     while (!(vif.awvalid)) begin
@@ -258,10 +178,7 @@ class Axi4FullSlaveVIP #(
       output logic [STRB_WIDTH-1:0] strb,
       output bit                    last);
     int unsigned cycles;
-    int unsigned stall;
-
-    stall = get_w_stall();
-    repeat (stall) @(posedge vif.aclk);
+    apply_stall();
 
     cycles = 0;
 
@@ -338,10 +255,8 @@ class Axi4FullSlaveVIP #(
       input logic [ID_WIDTH-1:0] id,
       input logic [1:0]          resp = 2'b00);
     int unsigned cycles;
-    int unsigned stall;
 
-    stall = get_b_stall();
-    repeat (stall) @(posedge vif.aclk);
+    apply_stall();
 
     vif.bid    = id;
     vif.bresp  = resp;
@@ -390,12 +305,10 @@ class Axi4FullSlaveVIP #(
       output logic [ BURST_WIDTH-1:0] burst,
       output logic [  PROT_WIDTH-1:0] prot);
     int unsigned cycles;
-    int unsigned stall;
 
     wait_reset_release();
 
-    stall = get_ar_stall();
-    repeat (stall) @(posedge vif.aclk);
+    apply_stall();
 
     cycles = 0;
     while (!(vif.arvalid)) begin
@@ -430,14 +343,11 @@ class Axi4FullSlaveVIP #(
     int unsigned beat_idx;
     int unsigned cycles;
 
-    int unsigned stall;
-
     beat_count = data.size();
     assert (beat_count > 0)
     else $fatal(1, "%s send_rchn called with no data beats", vip_name);
 
-    stall = get_r_stall();
-    repeat (stall) @(posedge vif.aclk);
+    apply_stall();
 
     vif.rdata  = data[0];
     vif.rid    = id;
@@ -476,10 +386,8 @@ class Axi4FullSlaveVIP #(
       input logic [1:0]            resp = 2'b00,
       input bit                    last = 1'b1);
     int unsigned cycles;
-    int unsigned stall;
 
-    stall = get_r_stall();
-    repeat (stall) @(posedge vif.aclk);
+    apply_stall();
 
     vif.rid    = id;
     vif.rdata  = data;
