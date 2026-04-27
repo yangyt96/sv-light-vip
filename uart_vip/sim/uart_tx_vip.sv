@@ -9,6 +9,8 @@ class UartTxVIP #(
   int unsigned min_pause_cycles;
   int unsigned max_pause_cycles;
   int unsigned timeout_cycles;
+  // Parity configuration: 0=none, 1=odd, 2=even
+  int unsigned parity_mode;
 
   function new(virtual uart_if.transmitter vif, string vip_name = "uart_tx_vip");
     this.vif = vif;
@@ -17,6 +19,7 @@ class UartTxVIP #(
     min_pause_cycles = 0;
     max_pause_cycles = 0;
     timeout_cycles = 10000;
+    parity_mode = 0;
   endfunction
 
   function void configure_pause_generator(bit enable, int unsigned min_cycles = 0,
@@ -28,6 +31,24 @@ class UartTxVIP #(
 
   function void configure_timeout(int unsigned cycles);
     timeout_cycles = cycles;
+  endfunction
+
+  // Configure parity: 0=none, 1=odd, 2=even
+  function void configure_parity(int unsigned mode);
+    if (mode > 2) begin
+      $error("%s invalid parity mode %0d (0=none, 1=odd, 2=even)", vip_name, mode);
+    end else begin
+      parity_mode = mode;
+    end
+  endfunction
+
+  // Compute parity bit: 1=odd, 2=even
+  function automatic bit compute_parity(input logic [DATA_BITS-1:0] data);
+    if (parity_mode == 1) begin
+      return ~(^data);  // odd parity
+    end else begin
+      return ^data;  // even parity
+    end
   endfunction
 
   task automatic idle();
@@ -54,7 +75,10 @@ class UartTxVIP #(
     end
     @(posedge vif.clk);
 
+    // Start bit
     drive_bit(1'b0);
+
+    // Data bits (LSB first)
     for (int bit_idx = 0; bit_idx < DATA_BITS; bit_idx++) begin
       drive_bit(data[bit_idx]);
       // Optional pause between bits
@@ -63,9 +87,16 @@ class UartTxVIP #(
         repeat (pause_cycles) @(posedge vif.clk);
       end
     end
+
+    // Parity bit (if enabled)
+    if (parity_mode > 0) begin
+      drive_bit(compute_parity(data));
+    end
+
+    // Stop bit
     drive_bit(1'b1);
 
-    $display("[%0t] %s TX data=%h", $time, vip_name, data);
+    $display("[%0t] %s TX data=%h parity=%0d", $time, vip_name, data, parity_mode);
   endtask
 
 endclass

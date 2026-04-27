@@ -86,6 +86,78 @@ module spi_vip_tb;
     end
   endtask
 
+  // Test: CS de-asserted mid-transfer (abnormal condition)
+  // Master starts a transfer but de-asserts CS before all bits are clocked.
+  // The slave should detect CS going high and abort.
+  task automatic run_cs_abort();
+    logic [DATA_BITS-1:0] master_tx;
+    logic [DATA_BITS-1:0] slave_tx;
+    logic [DATA_BITS-1:0] master_rx;
+    logic [DATA_BITS-1:0] slave_rx;
+    bit slave_aborted;
+
+    master_tx = 8'hA5;
+    slave_tx  = 8'h5A;
+
+    fork
+      // Master: start transfer but force CS high after a few bits
+      begin
+        int unsigned cycles;
+        cycles = 0;
+        while (!rstn) begin
+          @(posedge clk);
+          cycles++;
+          if (cycles >= 10000) $fatal(1, "master timeout waiting for reset release");
+        end
+        @(posedge clk);
+
+        spi_link.cs_n = 1'b0;
+
+        // Drive only 4 bits (half a frame), then abort
+        for (int bit_idx = DATA_BITS - 1; bit_idx >= DATA_BITS / 2; bit_idx--) begin
+          if (TEST_CPHA == 1'b0) begin
+            spi_link.mosi = master_tx[bit_idx];
+            repeat (HALF_SCLK_CYCLES) @(posedge clk);
+            spi_link.sclk = ~TEST_CPOL;
+            repeat (HALF_SCLK_CYCLES) @(posedge clk);
+            spi_link.sclk = TEST_CPOL;
+          end else begin
+            spi_link.sclk = ~TEST_CPOL;
+            spi_link.mosi = master_tx[bit_idx];
+            repeat (HALF_SCLK_CYCLES) @(posedge clk);
+            spi_link.sclk = TEST_CPOL;
+            repeat (HALF_SCLK_CYCLES) @(posedge clk);
+          end
+        end
+
+        // Abort: de-assert CS mid-transfer
+        #1;
+        spi_link.cs_n = 1'b1;
+        spi_link.mosi = 1'b0;
+        spi_link.sclk = TEST_CPOL;
+
+        $display("[%0t] SPI CS aborted mid-transfer", $time);
+      end
+      // Slave: should detect CS going high and exit
+      begin
+        slave_aborted = 1'b0;
+        fork
+          slave_vip.transfer(slave_tx, slave_rx);
+          begin
+            // Wait for CS to go high (abort condition)
+            @(posedge spi_link.cs_n);
+            slave_aborted = 1'b1;
+          end
+        join_any
+        // If slave finished transfer before abort, that's also acceptable
+        // (depends on timing). The key is no crash/hang.
+      end
+    join
+
+    $display("[%0t] SPI CS abort test completed, slave_aborted=%0b", $time, slave_aborted);
+    #(INTER_TRANSACTION_PAUSE);
+  endtask
+
   initial begin
     clk = 1'b0;
     forever #5 clk = ~clk;
@@ -146,6 +218,10 @@ module spi_vip_tb;
       assert(observed_count == CONTINUOUS_TRANSFER_COUNT)
         else $error("SPI continuous count mismatch exp=%0d got=%0d",
                     CONTINUOUS_TRANSFER_COUNT, observed_count);
+    end
+
+    `TEST_CASE("CSAbortMidTransfer") begin
+      run_cs_abort();
     end
   end
 

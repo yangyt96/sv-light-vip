@@ -13,6 +13,7 @@ module uart_vip_tb;
   localparam int DATA_BITS               = 8;
   localparam int STIMULUS_COUNT          = 56;
   localparam int CONTINUOUS_FRAME_COUNT  = 48;
+  localparam int PARITY_STIMULUS_COUNT   = 32;
   localparam time INTER_TRANSACTION_PAUSE = 10us;
 
   logic clk;
@@ -31,15 +32,17 @@ module uart_vip_tb;
     logic [DATA_BITS-1:0] exp_data;
     logic [DATA_BITS-1:0] rx_data;
     bit framing_error;
+    bit parity_error;
 
     exp_data = build_data(index);
 
     fork
       tx_vip.transmit(exp_data);
-      rx_vip.receive(rx_data, framing_error);
+      rx_vip.receive(rx_data, framing_error, parity_error);
     join
 
     assert(!framing_error) else $error("UART framing error at stimulus %0d", index);
+    assert(!parity_error) else $error("UART parity error at stimulus %0d", index);
     assert(rx_data == exp_data)
       else $error("UART data mismatch at stimulus %0d exp=%h got=%h", index, exp_data, rx_data);
 
@@ -60,16 +63,44 @@ module uart_vip_tb;
     logic [DATA_BITS-1:0] rx_data;
     logic [DATA_BITS-1:0] exp_data;
     bit framing_error;
+    bit parity_error;
 
     observed_count = 0;
     for (int unsigned idx = start_index; idx < (start_index + frame_count); idx++) begin
-      rx_vip.receive(rx_data, framing_error);
+      rx_vip.receive(rx_data, framing_error, parity_error);
       exp_data = build_data(idx);
       observed_count++;
       assert(!framing_error) else $error("UART continuous framing error at stimulus %0d", idx);
+      assert(!parity_error) else $error("UART continuous parity error at stimulus %0d", idx);
       assert(rx_data == exp_data)
         else $error("UART continuous mismatch at stimulus %0d exp=%h got=%h", idx, exp_data, rx_data);
     end
+  endtask
+
+  // --- Parity test tasks ---
+
+  task automatic run_parity_frame(input int unsigned index, input int unsigned parity_mode);
+    logic [DATA_BITS-1:0] exp_data;
+    logic [DATA_BITS-1:0] rx_data;
+    bit framing_error;
+    bit parity_error;
+
+    exp_data = build_data(index);
+
+    tx_vip.configure_parity(parity_mode);
+    rx_vip.configure_parity(parity_mode);
+
+    fork
+      tx_vip.transmit(exp_data);
+      rx_vip.receive(rx_data, framing_error, parity_error);
+    join
+
+    assert(!framing_error) else $error("UART parity framing error at stimulus %0d", index);
+    assert(!parity_error) else $error("UART parity error at stimulus %0d (mode=%0d)", index, parity_mode);
+    assert(rx_data == exp_data)
+      else $error("UART parity data mismatch at stimulus %0d exp=%h got=%h", index, exp_data, rx_data);
+
+    #(INTER_TRANSACTION_PAUSE);
   endtask
 
   initial begin
@@ -114,6 +145,18 @@ module uart_vip_tb;
       assert(observed_count == CONTINUOUS_FRAME_COUNT)
         else $error("UART continuous count mismatch exp=%0d got=%0d",
                     CONTINUOUS_FRAME_COUNT, observed_count);
+    end
+
+    `TEST_CASE("OddParity") begin
+      for (stimulus_idx = 0; stimulus_idx < PARITY_STIMULUS_COUNT; stimulus_idx++) begin
+        run_parity_frame(stimulus_idx, 1);
+      end
+    end
+
+    `TEST_CASE("EvenParity") begin
+      for (stimulus_idx = 0; stimulus_idx < PARITY_STIMULUS_COUNT; stimulus_idx++) begin
+        run_parity_frame(stimulus_idx, 2);
+      end
     end
   end
 

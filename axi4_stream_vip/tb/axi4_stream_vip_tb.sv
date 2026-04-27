@@ -408,6 +408,69 @@ module axi4_stream_dut_tb;
         $display("[%0t] Burst %0d completed successfully with %0d beats", $time, burst_idx, burst_length);
       end
     end
+
+    `TEST_CASE("SidebandSignals") begin
+      // Dedicated test for TID, TDEST, TUSER sideband signals
+      // Verifies that all sideband signals are correctly transmitted across
+      // a range of values, including boundary conditions.
+      master.configure_pause_generator(1'b0);
+      slave.configure_backpressure(1'b0);
+
+      // Test 1: TID boundary values
+      for (stimulus_idx = 0; stimulus_idx < 16; stimulus_idx++) begin
+        logic [DATA_WIDTH-1:0] exp_tdata;
+        logic [KEEP_WIDTH-1:0] exp_tkeep;
+        logic [KEEP_WIDTH-1:0] exp_tstrb;
+        bit                    exp_tlast;
+        logic [TID_WIDTH-1:0]  exp_tid;
+        logic [TDEST_WIDTH-1:0] exp_tdest;
+        logic [TUSER_WIDTH-1:0] exp_tuser;
+        logic [DATA_WIDTH-1:0] rx_tdata;
+        logic [KEEP_WIDTH-1:0] rx_tkeep;
+        logic [KEEP_WIDTH-1:0] rx_tstrb;
+        bit                    rx_tlast;
+        logic [TID_WIDTH-1:0]  rx_tid;
+        logic [TDEST_WIDTH-1:0] rx_tdest;
+        logic [TUSER_WIDTH-1:0] rx_tuser;
+
+        exp_tdata = build_tdata(stimulus_idx);
+        exp_tkeep = '1;
+        exp_tstrb = '1;
+        exp_tlast = 1'b0;
+
+        // TID: test all-zeros, all-ones, alternating patterns
+        if (stimulus_idx < 4) begin
+          exp_tid   = TID_WIDTH'(stimulus_idx == 0 ? '0 : stimulus_idx == 1 ? '1 : stimulus_idx == 2 ? 8'hAA : 8'h55);
+          exp_tdest = TDEST_WIDTH'(8'h00);
+          exp_tuser = TUSER_WIDTH'(32'h0000_0000);
+        end else if (stimulus_idx < 8) begin
+          exp_tid   = TID_WIDTH'(8'hF0);
+          exp_tdest = TDEST_WIDTH'(stimulus_idx == 4 ? '0 : stimulus_idx == 5 ? '1 : stimulus_idx == 6 ? 8'hCC : 8'h33);
+          exp_tuser = TUSER_WIDTH'(32'h0000_0000);
+        end else begin
+          exp_tid   = TID_WIDTH'(8'h0F);
+          exp_tdest = TDEST_WIDTH'(8'h55);
+          exp_tuser = TUSER_WIDTH'(stimulus_idx == 8 ? '0 : stimulus_idx == 9 ? '1 : stimulus_idx == 10 ? 32'hAAAA_AAAA : 32'h5555_5555);
+        end
+
+        fork
+          master.transmit(exp_tdata, exp_tkeep, exp_tstrb, exp_tlast, exp_tid, exp_tdest, exp_tuser);
+          slave.receive(rx_tdata, rx_tkeep, rx_tstrb, rx_tlast, rx_tid, rx_tdest, rx_tuser);
+        join
+
+        assert(rx_tdata == exp_tdata) else $error("Sideband: TDATA mismatch at %0d", stimulus_idx);
+        assert(rx_tkeep == exp_tkeep) else $error("Sideband: TKEEP mismatch at %0d", stimulus_idx);
+        assert(rx_tstrb == exp_tstrb) else $error("Sideband: TSTRB mismatch at %0d", stimulus_idx);
+        assert(rx_tlast == exp_tlast) else $error("Sideband: TLAST mismatch at %0d", stimulus_idx);
+        assert(rx_tid == exp_tid) else $error("Sideband: TID mismatch at %0d exp=%h got=%h", stimulus_idx, exp_tid, rx_tid);
+        assert(rx_tdest == exp_tdest) else $error("Sideband: TDEST mismatch at %0d exp=%h got=%h", stimulus_idx, exp_tdest, rx_tdest);
+        assert(rx_tuser == exp_tuser) else $error("Sideband: TUSER mismatch at %0d exp=%h got=%h", stimulus_idx, exp_tuser, rx_tuser);
+
+        @(posedge clk);
+      end
+
+      $display("[%0t] Sideband signals test completed", $time);
+    end
   end
 
 endmodule

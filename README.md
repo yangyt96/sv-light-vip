@@ -55,10 +55,26 @@ All VIPs follow the same structure and coding style for consistency.
 
 ## 🧪 Running Regressions
 
+### Run all VIPs (regression suite)
+
+```bash
+python3 run_all.py
+```
+
+### Run a single VIP
+
 From the repository root:
 
 ```bash
 python3 <vip_name>/tb/run.py
+```
+
+### Regression script options
+
+```bash
+python3 run_all.py --list    # List available VIPs
+python3 run_all.py --gui     # Run with ModelSim GUI
+python3 run_all.py --help    # Show help
 ```
 
 ## 🐳 Docker Environment
@@ -68,9 +84,14 @@ A ready‑to‑use ModelSim ASE Docker image is available:
 https://github.com/yangyt96/docker-hdl-images/blob/master/modelsim-image/Dockerfile.modelsim
 ```
 
-Run a VIP inside Docker:
+Run a single VIP inside Docker:
 ```bash
 docker run --rm -v "$PWD":/work -w /work/<vip_name>/tb modelsim:20.1 python3 run.py
+```
+
+Run the full regression suite inside Docker:
+```bash
+docker run --rm -v "$PWD":/workspace -w /workspace modelsim:20.1 python3 run_all.py
 ```
 
 ## 🖥️ ModelSim GUI (via Docker)
