@@ -194,8 +194,7 @@ class Axi4FullMasterVIP #(
     $display("[%0t] %s TX AW addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr,
              beat_count, id, burst);
 
-    vif.awvalid <= 1'b0;
-    @(posedge vif.aclk);
+    vif.awvalid = 1'b0;
   endtask
 
   // Write Data Channel - Send write data phase
@@ -212,33 +211,24 @@ class Axi4FullMasterVIP #(
 
     apply_pause();
 
-    vif.wdata  = data[0];
-    vif.wstrb  = strb[0];
-    vif.wlast  = (beat_count == 1);
     vif.wuser  = '0;
     vif.wvalid = 1'b1;
 
-    beat_idx   = 0;
-    cycles     = 0;
-
-    while (beat_idx < beat_count) begin
-      @(posedge vif.aclk);
-      cycles++;
-      if (cycles >= timeout_cycles) begin
-        $fatal(1, "%s timed out waiting for AXI4 write data handshakes", vip_name);
-      end
-      if (vif.wvalid && vif.wready) begin
-        beat_idx++;
-        if (beat_idx < beat_count) begin
-          vif.wdata = data[beat_idx];
-          vif.wstrb = strb[beat_idx];
-          vif.wlast = (beat_idx == (beat_count - 1));
-        end else begin
-          vif.wvalid = 1'b0;
-          vif.wlast  = 1'b0;
+    for(beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
+      cycles     = 0;
+      vif.wdata  = data[beat_idx];
+      vif.wstrb  = strb[beat_idx];
+      vif.wlast  = (beat_idx == (beat_count - 1));
+      do begin
+        @(posedge vif.aclk);
+        cycles++;
+        if (cycles >= timeout_cycles) begin
+          $fatal(1, "%s timed out waiting for AXI4 write data handshakes", vip_name);
         end
-      end
+      end while(!vif.wready);
     end
+
+    vif.wvalid = 1'b0;
 
     $display("[%0t] %s TX W beats=%0d", $time, vip_name, beat_count);
   endtask
@@ -347,8 +337,7 @@ class Axi4FullMasterVIP #(
       end
     end while (!(vif.arready));
 
-    vif.arvalid <= 1'b0;
-    @(posedge vif.aclk);
+    vif.arvalid = 1'b0;
 
     $display("[%0t] %s TX AR addr=%h beats=%0d id=%0d burst=%0d", $time, vip_name, addr,
              beat_count, id, burst);
