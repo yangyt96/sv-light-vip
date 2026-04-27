@@ -53,22 +53,31 @@ module apb_mem_vip_tb;
   logic [PROT_WIDTH-1:0] apb_pprot_q;
 
   always_ff @(posedge clk) begin
-    if (rstn && apb_wait_q && apb_link.psel && apb_link.penable && !apb_link.pready) begin
-      assert(apb_link.paddr == apb_paddr_q) else $error("APB PADDR changed while waiting for PREADY");
-      assert(apb_link.pwrite == apb_pwrite_q) else $error("APB PWRITE changed while waiting for PREADY");
-      assert(apb_link.pprot == apb_pprot_q) else $error("APB PPROT changed while waiting for PREADY");
-      if (apb_link.pwrite) begin
-        assert(apb_link.pwdata == apb_pwdata_q) else $error("APB PWDATA changed while waiting for PREADY");
-        assert(apb_link.pstrb == apb_pstrb_q) else $error("APB PSTRB changed while waiting for PREADY");
+    if (!rstn) begin
+      apb_wait_q   <= 1'b0;
+      apb_paddr_q  <= '0;
+      apb_pwrite_q <= 1'b0;
+      apb_pwdata_q <= '0;
+      apb_pstrb_q  <= '0;
+      apb_pprot_q  <= '0;
+    end else begin
+      if (apb_wait_q && apb_link.psel && apb_link.penable && !apb_link.pready) begin
+        assert(apb_link.paddr == apb_paddr_q) else $error("APB PADDR changed while waiting for PREADY");
+        assert(apb_link.pwrite == apb_pwrite_q) else $error("APB PWRITE changed while waiting for PREADY");
+        assert(apb_link.pprot == apb_pprot_q) else $error("APB PPROT changed while waiting for PREADY");
+        if (apb_link.pwrite) begin
+          assert(apb_link.pwdata == apb_pwdata_q) else $error("APB PWDATA changed while waiting for PREADY");
+          assert(apb_link.pstrb == apb_pstrb_q) else $error("APB PSTRB changed while waiting for PREADY");
+        end
       end
-    end
 
-    apb_wait_q   <= rstn && apb_link.psel && apb_link.penable && !apb_link.pready;
-    apb_paddr_q  <= apb_link.paddr;
-    apb_pwrite_q <= apb_link.pwrite;
-    apb_pwdata_q <= apb_link.pwdata;
-    apb_pstrb_q  <= apb_link.pstrb;
-    apb_pprot_q  <= apb_link.pprot;
+      apb_wait_q   <= apb_link.psel && apb_link.penable && !apb_link.pready;
+      apb_paddr_q  <= apb_link.paddr;
+      apb_pwrite_q <= apb_link.pwrite;
+      apb_pwdata_q <= apb_link.pwdata;
+      apb_pstrb_q  <= apb_link.pstrb;
+      apb_pprot_q  <= apb_link.pprot;
+    end
   end
 
   // ========== Helper functions ==========
