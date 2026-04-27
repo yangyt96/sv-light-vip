@@ -237,33 +237,23 @@ class Axi4FullMasterVIP #(
   task recv_bchn(output logic [1:0] resp);
     int unsigned cycles;
 
-    $display("[%0t] debug 0 bready=%b bvalid=%b", $time, vif.bready, vif.bvalid);
-
     apply_pause();
-    $display("[%0t] debug 1 bready=%b bvalid=%b", $time, vif.bready, vif.bvalid);
 
-
+    vif.bready = 1'b1;
     cycles = 0;
-    while (!vif.bvalid) begin
+    do begin
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
         $fatal(1, "%s timed out waiting for AXI4 write response", vip_name);
       end
-    end
+    end while(!vif.bvalid);
 
-    $display("[%0t] debug 2 bready=%b bvalid=%b", $time, vif.bready, vif.bvalid);
-
-
-    vif.bready = 1'b1;
-    @(posedge vif.aclk);
-
-    $display("[%0t] debug 3 bready=%b bvalid=%b", $time, vif.bready, vif.bvalid);
+    $display("[%0t] %s RX B bresp=%0h", $time, vip_name, resp);
 
     resp = vif.bresp;
-    $display("[%0t] %s RX B bresp=%0h", $time, vip_name, resp);
-    vif.bready <= 1'b0;
-    @(posedge vif.aclk);
+    vif.bready = 1'b0;
+    // @(posedge vif.aclk);
   endtask
 
   task write_burst(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data[],
@@ -358,28 +348,28 @@ class Axi4FullMasterVIP #(
 
     apply_pause();
 
+    vif.rready = 1;
     for(beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
       cycles = 0;
-      while(!vif.rvalid) begin
+      do begin
         @(posedge vif.aclk);
         cycles++;
         if (cycles >= timeout_cycles) begin
           $fatal(1, "%s timed out waiting for AXI4 read data", vip_name);
         end
-      end
+      end while(!vif.rvalid);
       data[beat_idx] = vif.rdata;
       resp[beat_idx] = vif.rresp;
       assert (vif.rid == id)
       else $error("%s read ID mismatch exp=%0d got=%0d", vip_name, id, vif.rid);
       assert (vif.rlast == (beat_idx == (beat_count - 1)))
       else $error("%s rlast mismatch beat=%0d beats=%0d", vip_name, beat_idx, beat_count);
-      vif.rready = 1;
-      @(posedge vif.aclk);
-      vif.rready <= 0;
-      @(posedge vif.aclk);
     end
 
     $display("[%0t] %s RX R beats=%0d id=%0d", $time, vip_name, beat_count, id);
+
+    vif.rready = 0;
+    // @(posedge vif.aclk);
 
   endtask
 
