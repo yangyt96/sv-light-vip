@@ -7,9 +7,9 @@ class I2SRxVIP #(
   int unsigned timeout_cycles;
 
   function new(virtual i2s_if.receiver vif, string vip_name = "i2s_rx_vip");
-    this.vif = vif;
-    this.vip_name = vip_name;
-    timeout_cycles = 10000;
+    this.vif       = vif;
+    this.vip_name  = vip_name;
+    timeout_cycles = 1000;
   endfunction
 
   function void configure_timeout(int unsigned cycles);

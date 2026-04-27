@@ -10,10 +10,10 @@ class UartRxVIP #(
   int unsigned parity_mode;
 
   function new(virtual uart_if.receiver vif, string vip_name = "uart_rx_vip");
-    this.vif = vif;
-    this.vip_name = vip_name;
-    timeout_cycles = 10000;
-    parity_mode = 0;
+    this.vif       = vif;
+    this.vip_name  = vip_name;
+    timeout_cycles = 3000;
+    parity_mode    = 0;
   endfunction
 
   function void configure_timeout(int unsigned cycles);

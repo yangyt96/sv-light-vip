@@ -69,12 +69,12 @@ class Axi4FullMasterVIP #(
           .RUSER_WIDTH(RUSER_WIDTH)
       ).master vif,
       string vip_name = "axi4_full_master_vip");
-    this.vif = vif;
-    this.vip_name = vip_name;
+    this.vif               = vif;
+    this.vip_name          = vip_name;
     enable_pause_generator = 1'b0;
-    min_pause_cycles = 0;
-    max_pause_cycles = 0;
-    timeout_cycles = 2000;
+    min_pause_cycles       = 0;
+    max_pause_cycles       = 0;
+    timeout_cycles         = 1000;
   endfunction
 
   function void configure_pause_generator(bit enable, int unsigned min_cycles = 0,
@@ -91,19 +91,18 @@ class Axi4FullMasterVIP #(
   task automatic apply_pause();
     int unsigned pause_cycles;
     int unsigned cycles;
-    begin
-      cycles = 0;
-      while (!vif.aresetn) begin
-        @(posedge vif.aclk);
-        cycles++;
-        if (cycles >= timeout_cycles) begin
-          $fatal(1, "%s timed out waiting for AXI4 reset release", vip_name);
-        end
+
+    cycles = 0;
+    while (!vif.aresetn) begin
+      @(posedge vif.aclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for AXI4 reset release", vip_name);
       end
-      if (enable_pause_generator) begin
-        pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
-        repeat (pause_cycles) @(posedge vif.aclk);
-      end
+    end
+    if (enable_pause_generator) begin
+      pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
+      repeat (pause_cycles) @(posedge vif.aclk);
     end
   endtask
 

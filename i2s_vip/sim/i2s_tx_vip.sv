@@ -11,19 +11,19 @@ class I2STxVIP #(
   int unsigned timeout_cycles;
 
   function new(virtual i2s_if.transmitter vif, string vip_name = "i2s_tx_vip");
-    this.vif = vif;
-    this.vip_name = vip_name;
+    this.vif               = vif;
+    this.vip_name          = vip_name;
     enable_pause_generator = 1'b0;
-    min_pause_cycles = 0;
-    max_pause_cycles = 0;
-    timeout_cycles = 10000;
+    min_pause_cycles       = 0;
+    max_pause_cycles       = 0;
+    timeout_cycles         = 1000;
   endfunction
 
   function void configure_pause_generator(bit enable, int unsigned min_cycles = 0,
                                           int unsigned max_cycles = 0);
     enable_pause_generator = enable;
-    min_pause_cycles = min_cycles;
-    max_pause_cycles = (max_cycles < min_cycles) ? min_cycles : max_cycles;
+    min_pause_cycles       = min_cycles;
+    max_pause_cycles       = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
   function void configure_timeout(int unsigned cycles);

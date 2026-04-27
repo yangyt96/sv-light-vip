@@ -7,9 +7,9 @@ class I2CMasterVIP #(
   int unsigned timeout_cycles;
 
   function new(virtual i2c_if.master vif, string vip_name = "i2c_master_vip");
-    this.vif = vif;
-    this.vip_name = vip_name;
-    timeout_cycles = 20000;
+    this.vif       = vif;
+    this.vip_name  = vip_name;
+    timeout_cycles = 3000;
   endfunction
 
   function void configure_timeout(int unsigned cycles);

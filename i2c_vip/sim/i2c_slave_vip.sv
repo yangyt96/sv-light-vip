@@ -7,10 +7,10 @@ class I2CSlaveVIP;
 
   function new(virtual i2c_if.slave vif, logic [6:0] address = 7'h52,
                string vip_name = "i2c_slave_vip");
-    this.vif = vif;
-    this.address = address;
-    this.vip_name = vip_name;
-    timeout_cycles = 20000;
+    this.vif       = vif;
+    this.address   = address;
+    this.vip_name  = vip_name;
+    timeout_cycles = 3000;
   endfunction
 
   function void configure_timeout(int unsigned cycles);

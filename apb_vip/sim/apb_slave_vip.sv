@@ -12,10 +12,10 @@ class ApbSlaveVIP #(
 
   function new(virtual apb_if #(ADDR_WIDTH, DATA_WIDTH, STRB_WIDTH, PROT_WIDTH).slave vif,
                string vip_name = "apb_slave_vip");
-    this.vif = vif;
-    this.vip_name = vip_name;
+    this.vif           = vif;
+    this.vip_name      = vip_name;
     ready_delay_cycles = 0;
-    timeout_cycles = 1000;
+    timeout_cycles     = 1000;
   endfunction
 
   function void configure_ready_delay(int unsigned cycles);

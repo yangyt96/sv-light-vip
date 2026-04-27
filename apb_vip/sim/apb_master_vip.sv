@@ -14,19 +14,19 @@ class ApbMasterVIP #(
 
   function new(virtual apb_if #(ADDR_WIDTH, DATA_WIDTH, STRB_WIDTH, PROT_WIDTH).master vif,
                string vip_name = "apb_master_vip");
-    this.vif = vif;
-    this.vip_name = vip_name;
+    this.vif               = vif;
+    this.vip_name          = vip_name;
     enable_pause_generator = 1'b0;
-    min_pause_cycles = 0;
-    max_pause_cycles = 0;
-    timeout_cycles = 1000;
+    min_pause_cycles       = 0;
+    max_pause_cycles       = 0;
+    timeout_cycles         = 1000;
   endfunction
 
   function void configure_pause_generator(bit enable, int unsigned min_cycles = 0,
                                           int unsigned max_cycles = 0);
     enable_pause_generator = enable;
-    min_pause_cycles = min_cycles;
-    max_pause_cycles = (max_cycles < min_cycles) ? min_cycles : max_cycles;
+    min_pause_cycles       = min_cycles;
+    max_pause_cycles       = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
   function void configure_timeout(int unsigned cycles);
@@ -36,19 +36,18 @@ class ApbMasterVIP #(
   task automatic apply_pause();
     int unsigned pause_cycles;
     int unsigned cycles;
-    begin
-      cycles = 0;
-      while (!vif.presetn) begin
-        @(posedge vif.pclk);
-        cycles++;
-        if (cycles >= timeout_cycles) begin
-          $fatal(1, "%s timed out waiting for APB reset release", vip_name);
-        end
+
+    cycles = 0;
+    while (!vif.presetn) begin
+      @(posedge vif.pclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for APB reset release", vip_name);
       end
-      if (enable_pause_generator) begin
-        pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
-        repeat (pause_cycles) @(posedge vif.pclk);
-      end
+    end
+    if (enable_pause_generator) begin
+      pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
+      repeat (pause_cycles) @(posedge vif.pclk);
     end
   endtask
 

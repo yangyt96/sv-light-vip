@@ -9,11 +9,11 @@ class SpiSlaveVIP #(
   bit cpha;
 
   function new(virtual spi_if.slave vif, string vip_name = "spi_slave_vip");
-    this.vif = vif;
-    this.vip_name = vip_name;
-    timeout_cycles = 2000;
-    cpol = 1'b0;
-    cpha = 1'b0;
+    this.vif       = vif;
+    this.vip_name  = vip_name;
+    timeout_cycles = 3000;
+    cpol           = 1'b0;
+    cpha           = 1'b0;
   endfunction
 
   function void configure_timeout(int unsigned cycles);

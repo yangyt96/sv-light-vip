@@ -13,21 +13,21 @@ class SpiMasterVIP #(
   bit cpha;
 
   function new(virtual spi_if.master vif, string vip_name = "spi_master_vip");
-    this.vif = vif;
-    this.vip_name = vip_name;
+    this.vif               = vif;
+    this.vip_name          = vip_name;
     enable_pause_generator = 1'b0;
-    min_pause_cycles = 0;
-    max_pause_cycles = 0;
-    timeout_cycles = 10000;
-    cpol = 1'b0;
-    cpha = 1'b0;
+    min_pause_cycles       = 0;
+    max_pause_cycles       = 0;
+    timeout_cycles         = 3000;
+    cpol                   = 1'b0;
+    cpha                   = 1'b0;
   endfunction
 
   function void configure_pause_generator(bit enable, int unsigned min_cycles = 0,
                                           int unsigned max_cycles = 0);
     enable_pause_generator = enable;
-    min_pause_cycles = min_cycles;
-    max_pause_cycles = (max_cycles < min_cycles) ? min_cycles : max_cycles;
+    min_pause_cycles       = min_cycles;
+    max_pause_cycles       = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
   function void configure_timeout(int unsigned cycles);
@@ -42,19 +42,18 @@ class SpiMasterVIP #(
   task automatic apply_pause();
     int unsigned pause_cycles;
     int unsigned cycles;
-    begin
-      cycles = 0;
-      while (!vif.rstn) begin
-        @(posedge vif.clk);
-        cycles++;
-        if (cycles >= timeout_cycles) begin
-          $fatal(1, "%s timed out waiting for SPI reset release", vip_name);
-        end
+
+    cycles = 0;
+    while (!vif.rstn) begin
+      @(posedge vif.clk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for SPI reset release", vip_name);
       end
-      if (enable_pause_generator) begin
-        pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
-        repeat (pause_cycles) @(posedge vif.clk);
-      end
+    end
+    if (enable_pause_generator) begin
+      pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
+      repeat (pause_cycles) @(posedge vif.clk);
     end
   endtask
 
