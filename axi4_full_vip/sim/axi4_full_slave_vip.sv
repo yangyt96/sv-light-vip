@@ -347,22 +347,20 @@ class Axi4FullSlaveVIP #(
     vif.bresp  = resp;
     vif.buser  = '0;
     vif.bvalid = 1'b1;
-    @(posedge vif.aclk);
 
     cycles = 0;
-    while (!(vif.bready)) begin
+    do begin
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
         $fatal(1, "%s timed out waiting for BREADY", vip_name);
       end
-    end
+    end while (!(vif.bready));
 
     $display("[%0t] %s TX B id=%0d resp=%0h", $time, vip_name, id, resp);
 
-    // Use non-blocking assignment to release bvalid, ensuring master sees
-    // the handshake in its do...while loop even in fork...join race.
     vif.bvalid <= 1'b0;
+    @(posedge vif.aclk);
   endtask
 
   // Complete write transaction: expect write + send response
