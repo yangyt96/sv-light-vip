@@ -102,6 +102,7 @@ class Axi4FullSlaveVIP #(
       repeat (stall_cycles) @(posedge vif.aclk);
     end
   endtask
+
   task automatic wait_reset_release();
     int unsigned cycles;
     cycles = 0;
@@ -349,70 +350,27 @@ class Axi4FullSlaveVIP #(
 
     apply_stall();
 
-    vif.rdata  = data[0];
     vif.rid    = id;
     vif.rresp  = resp;
-    vif.rlast  = (beat_count == 1);
     vif.ruser  = '0;
     vif.rvalid = 1'b1;
 
-    beat_idx   = 0;
-    cycles     = 0;
-
-    while (beat_idx < beat_count) begin
-      @(posedge vif.aclk);
-      cycles++;
-      if (cycles >= timeout_cycles) begin
-        $fatal(1, "%s timed out waiting for AXI4 write data handshakes", vip_name);
-      end
-      if (vif.rvalid && vif.rready) begin
-        beat_idx++;
-        if (beat_idx < beat_count) begin
-          vif.rdata = data[beat_idx];
-          vif.rlast = (beat_idx == (beat_count - 1));
-        end else begin
-          vif.rvalid = 1'b0;
-          vif.rlast  = 1'b0;
-        end
-      end
+    for(beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
+        cycles     = 0;
+        vif.rdata  = data[beat_idx];
+        vif.rlast  = (beat_idx == (beat_count - 1));
+        do begin
+          @(posedge vif.aclk);
+          cycles++;
+          if (cycles >= timeout_cycles) begin
+            $fatal(1, "%s timed out waiting for AXI4 write data handshakes", vip_name);
+          end
+        end while(!(vif.rvalid && vif.rready));
     end
 
-  endtask
-
-  // Send a single read data (R) beat
-  task automatic send_read_data(
-      input logic [  ID_WIDTH-1:0] id,
-      input logic [DATA_WIDTH-1:0] data,
-      input logic [1:0]            resp = 2'b00,
-      input bit                    last = 1'b1);
-    int unsigned cycles;
-
-    apply_stall();
-
-    vif.rid    = id;
-    vif.rdata  = data;
-    vif.rresp  = resp;
-    vif.rlast  = last;
-    vif.ruser  = '0;
-    vif.rvalid = 1'b1;
-
-    // Use while loop (check before wait) to avoid race condition in fork...join.
-    // If master already has rready asserted, handshake completes immediately.
-    cycles = 0;
-    do begin
-      @(posedge vif.aclk);
-      cycles++;
-      if (cycles >= timeout_cycles) begin
-        $fatal(1, "%s timed out waiting for RREADY", vip_name);
-      end
-    end while (!(vif.rvalid && vif.rready));
-
-    $display("[%0t] %s TX R id=%0d data=%h resp=%0h last=%0b", $time, vip_name, id, data, resp, last);
-
-    // Use non-blocking assignment to release rvalid, ensuring master sees
-    // the handshake in its do...while loop even in fork...join race.
-    vif.rvalid <= 1'b0;
+    vif.rvalid <= 0;
     @(posedge vif.aclk);
+
   endtask
 
   // Complete read transaction: accept address + send all data beats
@@ -434,11 +392,8 @@ class Axi4FullSlaveVIP #(
     else $fatal(1, "%s respond_read data array too short (need %0d, got %0d)",
                vip_name, beat_count, data.size());
 
-    // send_rchn(data, id, resp);
+    send_rchn(data, id, resp);
 
-    for (int i = 0; i < beat_count; i++) begin
-      send_read_data(id, data[i], resp, (i == (beat_count - 1)));
-    end
   endtask
 
 endclass
