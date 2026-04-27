@@ -369,31 +369,29 @@ class Axi4FullMasterVIP #(
 
     apply_pause();
 
-    vif.rready = 1'b1;
-    beat_idx   = 0;
-    cycles     = 0;
-
-    do begin
+    for(beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
+      cycles = 0;
+      while(!vif.rvalid) begin
+        @(posedge vif.aclk);
+        cycles++;
+        if (cycles >= timeout_cycles) begin
+          $fatal(1, "%s timed out waiting for AXI4 read data", vip_name);
+        end
+      end
+      data[beat_idx] = vif.rdata;
+      resp[beat_idx] = vif.rresp;
+      assert (vif.rid == id)
+      else $error("%s read ID mismatch exp=%0d got=%0d", vip_name, id, vif.rid);
+      assert (vif.rlast == (beat_idx == (beat_count - 1)))
+      else $error("%s rlast mismatch beat=%0d beats=%0d", vip_name, beat_idx, beat_count);
+      vif.rready = 1;
       @(posedge vif.aclk);
-      cycles++;
-      if (cycles >= timeout_cycles) begin
-        $fatal(1, "%s timed out waiting for AXI4 read data", vip_name);
-      end
-      if (vif.rvalid && vif.rready) begin
-        cycles = 0;
-        data[beat_idx] = vif.rdata;
-        resp[beat_idx] = vif.rresp;
-        assert (vif.rid == id)
-        else $error("%s read ID mismatch exp=%0d got=%0d", vip_name, id, vif.rid);
-        assert (vif.rlast == (beat_idx == (beat_count - 1)))
-        else $error("%s rlast mismatch beat=%0d beats=%0d", vip_name, beat_idx, beat_count);
-        beat_idx++;
-      end
-    end while (beat_idx < beat_count);
+      vif.rready <= 0;
+      @(posedge vif.aclk);
+    end
 
     $display("[%0t] %s RX R beats=%0d id=%0d", $time, vip_name, beat_count, id);
-    vif.rready <= 1'b0;
-    @(posedge vif.aclk);
+
   endtask
 
   task read_burst(
