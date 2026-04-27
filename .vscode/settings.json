@@ -3,4 +3,8 @@
         "editor.defaultFormatter": "ms-python.black-formatter",
         "editor.formatOnSave": true
     },
+  // When enabled, will trim trailing whitespace when saving a file.
+  "files.trimTrailingWhitespace": true,
+  // When enabled, will trim all new lines after the final new line when saving it.
+  "files.trimFinalNewlines": true,
 }
