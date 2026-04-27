@@ -260,7 +260,7 @@ class Axi4FullMasterVIP #(
 
     resp = vif.bresp;
     $display("[%0t] %s RX B bresp=%0h", $time, vip_name, resp);
-    vif.bready = 1'b0;
+    vif.bready <= 1'b0;
   endtask
 
   task write_burst(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data[],
@@ -377,7 +377,7 @@ class Axi4FullMasterVIP #(
     end while (beat_idx < beat_count);
 
     $display("[%0t] %s RX R beats=%0d id=%0d", $time, vip_name, beat_count, id);
-    vif.rready = 1'b0;
+    vif.rready <= 1'b0;
   endtask
 
   task read_burst(
