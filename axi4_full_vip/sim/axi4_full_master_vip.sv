@@ -158,14 +158,14 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Write Address Channel - Send write address phase
-  task write_awchannel(
+  task send_awchn(
       input logic [ADDR_WIDTH-1:0] addr, input int unsigned beat_count = 1,
       input logic [ID_WIDTH-1:0] id = '0, input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
       input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000);
     int unsigned cycles;
 
     assert (beat_count > 0)
-    else $fatal(1, "%s write_awchannel called with beat_count=0", vip_name);
+    else $fatal(1, "%s send_awchn called with beat_count=0", vip_name);
 
     apply_pause();
 
@@ -197,16 +197,16 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Write Data Channel - Send write data phase
-  task write_wchannel(input logic [DATA_WIDTH-1:0] data[], input logic [STRB_WIDTH-1:0] strb[]);
+  task send_wchn(input logic [DATA_WIDTH-1:0] data[], input logic [STRB_WIDTH-1:0] strb[]);
     int unsigned beat_count;
     int unsigned beat_idx;
     int unsigned cycles;
 
     beat_count = data.size();
     assert (beat_count > 0)
-    else $fatal(1, "%s write_wchannel called with no data beats", vip_name);
+    else $fatal(1, "%s send_wchn called with no data beats", vip_name);
     assert (strb.size() >= beat_count)
-    else $fatal(1, "%s write_wchannel strb array too short", vip_name);
+    else $fatal(1, "%s send_wchn strb array too short", vip_name);
 
     apply_pause();
 
@@ -242,7 +242,7 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Write Response Channel - Receive write response phase
-  task write_bchannel(output logic [1:0] resp);
+  task recv_bchn(output logic [1:0] resp);
     int unsigned cycles;
 
     $display("[%0t] debug 0 bready=%b bvalid=%b", $time, vif.bready, vif.bvalid);
@@ -288,9 +288,9 @@ class Axi4FullMasterVIP #(
     else $fatal(1, "%s write_burst strb array too short", vip_name);
 
     // Call the three channel APIs in sequence
-    write_awchannel(addr, beat_count, id, size, burst, prot);
-    write_wchannel(data, strb);
-    write_bchannel(resp);
+    send_awchn(addr, beat_count, id, size, burst, prot);
+    send_wchn(data, strb);
+    recv_bchn(resp);
   endtask
 
   // Read transaction
@@ -312,14 +312,14 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Read Address Channel - Send read address phase
-  task read_archannel(
+  task send_archn(
       input logic [ADDR_WIDTH-1:0] addr, input int unsigned beat_count = 1,
       input logic [ID_WIDTH-1:0] id = '0, input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
       input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000);
     int unsigned cycles;
 
     assert (beat_count > 0)
-    else $fatal(1, "%s read_archannel called with beat_count=0", vip_name);
+    else $fatal(1, "%s send_archn called with beat_count=0", vip_name);
 
     apply_pause();
 
@@ -351,7 +351,7 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Read Data Channel - Receive read data phase
-  task read_rchannel(ref logic [DATA_WIDTH-1:0] data[], ref logic [1:0] resp[],
+  task recv_rchn(ref logic [DATA_WIDTH-1:0] data[], ref logic [1:0] resp[],
                      input logic [ID_WIDTH-1:0] id = '0);
     int unsigned beat_count;
     int unsigned beat_idx;
@@ -359,9 +359,9 @@ class Axi4FullMasterVIP #(
 
     beat_count = data.size();
     assert (beat_count > 0)
-    else $fatal(1, "%s read_rchannel called with no data beats", vip_name);
+    else $fatal(1, "%s recv_rchn called with no data beats", vip_name);
     assert (resp.size() >= beat_count)
-    else $fatal(1, "%s read_rchannel resp array too short", vip_name);
+    else $fatal(1, "%s recv_rchn resp array too short", vip_name);
 
     apply_pause();
 
@@ -402,8 +402,8 @@ class Axi4FullMasterVIP #(
     else $fatal(1, "%s read_burst called with no beats", vip_name);
 
     // Call the two channel APIs in sequence
-    read_archannel(addr, beat_count, id, size, burst, prot);
-    read_rchannel(data, resp, id);
+    send_archn(addr, beat_count, id, size, burst, prot);
+    recv_rchn(data, resp, id);
   endtask
 
 endclass

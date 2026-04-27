@@ -292,25 +292,25 @@ module axi4_full_vip_tb;
       $display("\n--- Test 7: Multiple Outstanding Writes ---");
       fork
         begin
-          master_vip.write_awchannel(.addr(32'h6000), .id(4'd0));
-          master_vip.write_awchannel(.addr(32'h6004), .id(4'd1));
-          master_vip.write_awchannel(.addr(32'h6008), .id(4'd2));
-          master_vip.write_awchannel(.addr(32'h600C), .id(4'd3));
+          master_vip.send_awchn(.addr(32'h6000), .id(4'd0));
+          master_vip.send_awchn(.addr(32'h6004), .id(4'd1));
+          master_vip.send_awchn(.addr(32'h6008), .id(4'd2));
+          master_vip.send_awchn(.addr(32'h600C), .id(4'd3));
         end
 
         begin
           strb[0] = 4'hF;
           for(int i = 0; i < 4; i++) begin
             data[0] = 32'h11111111 * (i+1);
-            master_vip.write_wchannel(.data(data), .strb(strb));
+            master_vip.send_wchn(.data(data), .strb(strb));
           end
         end
 
         begin
-          master_vip.write_bchannel(.resp(resp[0]));
-          master_vip.write_bchannel(.resp(resp[1]));
-          master_vip.write_bchannel(.resp(resp[2]));
-          master_vip.write_bchannel(.resp(resp[3]));
+          master_vip.recv_bchn(.resp(resp[0]));
+          master_vip.recv_bchn(.resp(resp[1]));
+          master_vip.recv_bchn(.resp(resp[2]));
+          master_vip.recv_bchn(.resp(resp[3]));
         end
       join
       
@@ -342,15 +342,15 @@ module axi4_full_vip_tb;
       fork
 
         begin
-          master_vip.read_archannel(.addr(32'h6000), .id(4'd0));
-          master_vip.read_archannel(.addr(32'h6004), .id(4'd1));
-          master_vip.read_archannel(.addr(32'h6008), .id(4'd2));
-          master_vip.read_archannel(.addr(32'h600C), .id(4'd3));
+          master_vip.send_archn(.addr(32'h6000), .id(4'd0));
+          master_vip.send_archn(.addr(32'h6004), .id(4'd1));
+          master_vip.send_archn(.addr(32'h6008), .id(4'd2));
+          master_vip.send_archn(.addr(32'h600C), .id(4'd3));
         end
 
         begin
           for(int i = 0; i < 4; i++) begin
-            master_vip.read_rchannel(.data(data), .resp(resp), .id(i));
+            master_vip.recv_rchn(.data(data), .resp(resp), .id(i));
             rd_data[i] = data[0];
             rd_resp[i] = resp[0];
           end

@@ -309,7 +309,7 @@ module axi4_full_slave_vip_tb;
       fork
         begin
           for (int i = 0; i < 4; i++) begin
-            master_vip.read_archannel(.addr(32'h6000 + i*4), .id(i[3:0]));
+            master_vip.send_archn(.addr(32'h6000 + i*4), .id(i[3:0]));
           end
         end
         begin
@@ -322,7 +322,7 @@ module axi4_full_slave_vip_tb;
         end
         begin
           for (int i = 0; i < 4; i++) begin
-            master_vip.read_rchannel(.data(rd_buf), .resp(rd_resp), .id(i));
+            master_vip.recv_rchn(.data(rd_buf), .resp(rd_resp), .id(i));
             rd_data[i] = rd_buf[0];
           end
         end
