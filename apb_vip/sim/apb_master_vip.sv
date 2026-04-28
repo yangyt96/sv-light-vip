@@ -33,18 +33,20 @@ class ApbMasterVIP #(
     timeout_cycles = cycles;
   endfunction
 
+  // Clear all master output signals to default state
+  task automatic clear_outputs();
+    vif.paddr   <= '0;
+    vif.psel    <= 1'b0;
+    vif.penable <= 1'b0;
+    vif.pwrite  <= 1'b0;
+    vif.pwdata  <= '0;
+    vif.pstrb   <= '0;
+    vif.pprot   <= '0;
+  endtask
+
+  // Apply random pause only (no reset wait — call wait_reset_release() separately)
   task automatic apply_pause();
     int unsigned pause_cycles;
-    int unsigned cycles;
-
-    cycles = 0;
-    while (!vif.presetn) begin
-      @(posedge vif.pclk);
-      cycles++;
-      if (cycles >= timeout_cycles) begin
-        $fatal(1, "%s timed out waiting for APB reset release", vip_name);
-      end
-    end
     if (enable_pause_generator) begin
       pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
       repeat (pause_cycles) @(posedge vif.pclk);
@@ -88,6 +90,7 @@ class ApbMasterVIP #(
   task automatic write(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
                        input logic [STRB_WIDTH-1:0] strb = '1, output bit slverr,
                        input logic [PROT_WIDTH-1:0] prot = '0);
+    wait_reset_release();
     apply_pause();
 
     vif.paddr   <= addr;
@@ -115,6 +118,7 @@ class ApbMasterVIP #(
 
   task automatic read(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
                       output bit slverr, input logic [PROT_WIDTH-1:0] prot = '0);
+    wait_reset_release();
     apply_pause();
 
     vif.paddr   <= addr;

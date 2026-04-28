@@ -58,16 +58,23 @@ class ApbSlaveVIP #(
     end
   endtask
 
+  // Clear all slave output signals to default state
+  task automatic clear_outputs();
+    vif.prdata  <= '0;
+    vif.pready  <= 1'b0;
+    vif.pslverr <= 1'b0;
+  endtask
+
   task automatic idle();
     vif.prdata  <= '0;
     vif.pready  <= 1'b0;
     vif.pslverr <= 1'b0;
   endtask
 
+  // Note: wait_reset_release() should be called by the testbench or high-level task, not here
   task automatic wait_access(input bit expect_write);
     int unsigned cycles;
 
-    wait_reset_release();
     cycles = 0;
     do begin
       @(posedge vif.pclk);

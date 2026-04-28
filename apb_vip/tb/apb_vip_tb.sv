@@ -224,6 +224,8 @@ module apb_vip_tb;
 
       @(posedge rstn);
       @(posedge clk);
+      master_vip.clear_outputs();
+      slave_vip.clear_outputs();
     end
 
     `TEST_CASE("Basic Write-Read") begin
