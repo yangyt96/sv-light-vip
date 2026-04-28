@@ -1,8 +1,12 @@
-# SV-VIP 工作流程
+# SV-Light VIP 工作流程
 
-> 基于 `axi4_lite_vip` 开发过程的经验总结
+> 基于 `axi4_lite_vip` 和 `axi4_full_vip` 开发过程的经验总结
 >
-> 版本: v2.0 — 新增 Phase 0 确认、Phase 6 改进建议格式、常见陷阱补充
+> 角色: Roo — FPGA/ASIC RTL 验证工程师 (Code/Architect 模式)
+> 语言: 简体中文 (zh-CN) — 与用户沟通语言
+> Commit 语言: 英语 — 代码提交信息使用英语
+>
+> 版本: v2.1 — 新增 AXI4-Full 测试增强经验、复位测试陷阱、VIP 参数可见性、测试用例设计扩展
 
 ---
 
@@ -129,6 +133,10 @@
   - `output` 端口不能传递空参数 `.addr()`，必须声明局部变量传递
     - ❌ `slave.recv_awchn(.addr(), .prot())`
     - ✅ `slave.recv_awchn(.addr(tmp_addr), .prot(tmp_prot))`
+  - **VIP 类内部参数在 testbench 中不可见**:
+    - VIP 类内部定义的 `localparam`（如 `LEN_WIDTH`, `SIZE_WIDTH`）在 testbench 中不可见
+    - 声明变量时必须使用具体位宽（如 `logic [7:0] tmp_len` 而非 `logic [LEN_WIDTH-1:0] tmp_len`）
+    - 或从 VIP 类外部参数获取（如 `ID_WIDTH`, `ADDR_WIDTH` 是 testbench 的 `localparam`）
 
 ### Phase 4: 验证
 
@@ -194,15 +202,24 @@ All N/N tests passed, lint and format clean."
 - `git add .` — 同上
 - `git add -u` — 只更新已跟踪文件，但可能包含无关修改
 
-**Commit message 格式**:
+**Commit message 格式** (参考项目 git log):
+```
+[type] short description
+
+- bullet point details
+...
+```
+
 | 类型 | 说明 |
 |------|------|
-| `feat` | 新功能 |
-| `enh` | 增强/改进 |
-| `fix` | 修复 |
-| `docs` | 文档 |
-| `refactor` | 重构 |
-| `test` | 测试 |
+| `[feat]` | 新功能 |
+| `[enh]` | 增强/改进 |
+| `[fix]` | 修复 |
+| `[docs]` | 文档 |
+| `[refactor]` | 重构 |
+| `[test]` | 测试 |
+| `[style]` | 代码风格 |
+| `[format]` | 格式化 |
 
 **Commit message 语言**: 使用英语（根据用户要求）
 
@@ -261,6 +278,12 @@ All N/N tests passed, lint and format clean."
 - [ ] 复位行为测试（事务中复位、复位后恢复）
 - [ ] 连续事务测试（无间隔流水线）
 - [ ] 多事务并发测试（outstanding transactions）
+- [ ] **AXI4-Full 特有**:
+  - [ ] 4KB burst 边界跨越测试（INCR burst 跨越 0x1000 边界）
+  - [ ] 随机 burst 长度和类型（FIXED/INCR/WRAP, 1-16 beats）
+  - [ ] WRAP burst 在 memory 边界（地址对齐到 wrap 边界）
+  - [ ] 乱序 ID 完成（多个 outstanding 请求使用不同 ID）
+  - [ ] 最大背压压力测试（50-100 cycle 延迟）
 
 ---
 
@@ -277,3 +300,6 @@ All N/N tests passed, lint and format clean."
 9. **git add -A** — 应精确指定文件，避免提交无关修改
 10. **未确认设计直接实现** — 复杂功能应先提方案让用户确认
 11. **Mem VIP 复位语义** — Mem VIP 的复位只重置状态机，不清零 memory 内容。测试复位行为时应验证状态机恢复而非 memory 清零
+12. **复位后 slave VIP 状态丢失** — 复位后 slave VIP 的 `clear_outputs()` 必须被调用以恢复信号状态（`wready`, `arready` 等被清零）。否则后续事务会因 slave 不响应而超时
+13. **复位期间事务超时** — 不要在复位期间让 master 等待 slave 响应（如 `send_wchn` 等待 `wready`），这会导致 `$fatal` 超时。正确做法：先完成或放弃当前事务，再复位，复位后重新初始化
+14. **VIP 类内部参数不可见** — 在 testbench 中声明变量时，不能使用 VIP 类内部的 `localparam`（如 `LEN_WIDTH`），必须使用具体位宽（`logic [7:0]`）
