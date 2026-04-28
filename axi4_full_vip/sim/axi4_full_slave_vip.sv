@@ -75,16 +75,16 @@ class Axi4FullSlaveVIP #(
           .RUSER_WIDTH(RUSER_WIDTH)
       ).slave vif,
       string vip_name = "axi4_full_slave_vip");
-    this.vif       = vif;
-    this.vip_name  = vip_name;
+    this.vif            = vif;
+    this.vip_name       = vip_name;
     enable_backpressure = 1'b0;
-    min_stall_cycles       = 0;
-    max_stall_cycles       = 0;
-    timeout_cycles = 1000;
+    min_stall_cycles    = 0;
+    max_stall_cycles    = 0;
+    timeout_cycles      = 1000;
   endfunction
 
   // Configure backpressure for all channels
-  function void configure_backpressure(bit enable = 1'b0,  int unsigned min_cycles = 0,
+  function void configure_backpressure(bit enable = 1'b0, int unsigned min_cycles = 0,
                                        int unsigned max_cycles = 0);
     enable_backpressure = enable;
     min_stall_cycles = min_cycles;
@@ -135,13 +135,10 @@ class Axi4FullSlaveVIP #(
   // ============ Write Channel Tasks ============
 
   // Wait for and accept a write address (AW) transfer
-  task automatic recv_awchn(
-      output logic [  ADDR_WIDTH-1:0] addr,
-      output logic [    ID_WIDTH-1:0] id,
-      output logic [   LEN_WIDTH-1:0] len,
-      output logic [  SIZE_WIDTH-1:0] size,
-      output logic [ BURST_WIDTH-1:0] burst,
-      output logic [  PROT_WIDTH-1:0] prot);
+  task automatic recv_awchn(output logic [ADDR_WIDTH-1:0] addr, output logic [ID_WIDTH-1:0] id,
+                            output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
+                            output logic [BURST_WIDTH-1:0] burst,
+                            output logic [PROT_WIDTH-1:0] prot);
     int unsigned cycles;
 
     wait_reset_release();
@@ -162,23 +159,21 @@ class Axi4FullSlaveVIP #(
     // Capture address AFTER handshake. Master uses NBA to drive address
     // signals, which take effect in the NBA region. By waiting for awvalid
     // (which is also NBA-driven), we ensure all address signals are stable.
-    addr   = vif.awaddr;
-    id     = vif.awid;
-    len    = vif.awlen;
-    size   = vif.awsize;
-    burst  = vif.awburst;
-    prot   = vif.awprot;
+    addr  = vif.awaddr;
+    id    = vif.awid;
+    len   = vif.awlen;
+    size  = vif.awsize;
+    burst = vif.awburst;
+    prot  = vif.awprot;
 
-    $display("[%0t] %s RX AW addr=%h id=%0d len=%0d size=%0d burst=%0d",
-             $time, vip_name, addr, id, len, size, burst);
+    $display("[%0t] %s RX AW addr=%h id=%0d len=%0d size=%0d burst=%0d", $time, vip_name, addr, id,
+             len, size, burst);
 
     vif.awready <= 1'b0;
   endtask
 
-  task automatic recv_wchn(
-      output logic [DATA_WIDTH-1:0] data,
-      output logic [STRB_WIDTH-1:0] strb,
-      output logic                  last);
+  task automatic recv_wchn(output logic [DATA_WIDTH-1:0] data, output logic [STRB_WIDTH-1:0] strb,
+                           output logic last);
     int unsigned cycles;
 
     wait_reset_release();
@@ -199,27 +194,22 @@ class Axi4FullSlaveVIP #(
     strb = vif.wstrb;
     last = vif.wlast;
 
-    $display("[%0t] %s RX W data=%h strb=%h last=%b",
-             $time, vip_name, data, strb, last);
+    $display("[%0t] %s RX W data=%h strb=%h last=%b", $time, vip_name, data, strb, last);
 
     vif.wready <= 1'b0;
     // @(posedge vif.aclk);
   endtask
 
   // Wait for and accept a complete write burst (AW + all W beats)
-  task automatic expect_write(
-      output logic [  ADDR_WIDTH-1:0] addr,
-      ref     logic [DATA_WIDTH-1:0]  data[],
-      ref     logic [  STRB_WIDTH-1:0] strb[],
-      output logic [    ID_WIDTH-1:0] id,
-      output logic [   LEN_WIDTH-1:0] len,
-      output logic [  SIZE_WIDTH-1:0] size,
-      output logic [ BURST_WIDTH-1:0] burst,
-      output logic [  PROT_WIDTH-1:0] prot);
-    int unsigned beat_count;
-    logic [DATA_WIDTH-1:0] beat_data;
-    logic [STRB_WIDTH-1:0] beat_strb;
-    bit                    beat_last;
+  task automatic expect_write(output logic [ADDR_WIDTH-1:0] addr, ref logic [DATA_WIDTH-1:0] data[],
+                              ref logic [STRB_WIDTH-1:0] strb[], output logic [ID_WIDTH-1:0] id,
+                              output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
+                              output logic [BURST_WIDTH-1:0] burst,
+                              output logic [PROT_WIDTH-1:0] prot);
+    int unsigned                  beat_count;
+    logic        [DATA_WIDTH-1:0] beat_data;
+    logic        [STRB_WIDTH-1:0] beat_strb;
+    bit                           beat_last;
 
     recv_awchn(addr, id, len, size, burst, prot);
     beat_count = int'(len) + 1;
@@ -247,9 +237,7 @@ class Axi4FullSlaveVIP #(
   endtask
 
   // Send write response (B)
-  task automatic send_bchn(
-      input logic [ID_WIDTH-1:0] id,
-      input logic [1:0]          resp = 2'b00);
+  task automatic send_bchn(input logic [ID_WIDTH-1:0] id, input logic [1:0] resp = 2'b00);
     int unsigned cycles;
 
     apply_stall();
@@ -275,16 +263,15 @@ class Axi4FullSlaveVIP #(
   endtask
 
   // Complete write transaction: expect write + send response
-  task automatic expect_write_and_respond(
-      ref logic [DATA_WIDTH-1:0] data[],
-      ref logic [STRB_WIDTH-1:0] strb[],
-      input logic [1:0]          resp = 2'b00);
+  task automatic expect_write_and_respond(ref logic [DATA_WIDTH-1:0] data[],
+                                          ref logic [STRB_WIDTH-1:0] strb[],
+                                          input logic [1:0] resp = 2'b00);
     logic [ADDR_WIDTH-1:0] addr;
-    logic [  ID_WIDTH-1:0] id;
-    logic [ LEN_WIDTH-1:0] len;
+    logic [ID_WIDTH-1:0] id;
+    logic [LEN_WIDTH-1:0] len;
     logic [SIZE_WIDTH-1:0] size;
     logic [BURST_WIDTH-1:0] burst;
-    logic [  PROT_WIDTH-1:0] prot;
+    logic [PROT_WIDTH-1:0] prot;
 
     expect_write(addr, data, strb, id, len, size, burst, prot);
     send_bchn(id, resp);
@@ -293,13 +280,10 @@ class Axi4FullSlaveVIP #(
   // ============ Read Channel Tasks ============
 
   // Wait for and accept a read address (AR) transfer
-  task automatic recv_archn(
-      output logic [  ADDR_WIDTH-1:0] addr,
-      output logic [    ID_WIDTH-1:0] id,
-      output logic [   LEN_WIDTH-1:0] len,
-      output logic [  SIZE_WIDTH-1:0] size,
-      output logic [ BURST_WIDTH-1:0] burst,
-      output logic [  PROT_WIDTH-1:0] prot);
+  task automatic recv_archn(output logic [ADDR_WIDTH-1:0] addr, output logic [ID_WIDTH-1:0] id,
+                            output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
+                            output logic [BURST_WIDTH-1:0] burst,
+                            output logic [PROT_WIDTH-1:0] prot);
     int unsigned cycles;
 
     wait_reset_release();
@@ -327,16 +311,14 @@ class Axi4FullSlaveVIP #(
     burst = vif.arburst;
     prot  = vif.arprot;
 
-    $display("[%0t] %s RX AR addr=%h id=%0d len=%0d size=%0d burst=%0d",
-             $time, vip_name, addr, id, len, size, burst);
+    $display("[%0t] %s RX AR addr=%h id=%0d len=%0d size=%0d burst=%0d", $time, vip_name, addr, id,
+             len, size, burst);
 
     vif.arready <= 1'b0;
   endtask
 
-  task automatic send_rchn(
-      input logic [DATA_WIDTH-1:0] data[],
-      input logic [  ID_WIDTH-1:0] id,
-      input logic [1:0]            resp = 2'b00);
+  task automatic send_rchn(input logic [DATA_WIDTH-1:0] data[], input logic [ID_WIDTH-1:0] id,
+                           input logic [1:0] resp = 2'b00);
     int unsigned beat_count;
     int unsigned beat_idx;
     int unsigned cycles;
@@ -352,17 +334,17 @@ class Axi4FullSlaveVIP #(
     vif.ruser  <= '0;
     vif.rvalid <= 1'b1;
 
-    for(beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
-        cycles     = 0;
-        vif.rdata  <= data[beat_idx];
-        vif.rlast  <= (beat_idx == (beat_count - 1));
-        do begin
-          @(posedge vif.aclk);
-          cycles++;
-          if (cycles >= timeout_cycles) begin
-            $fatal(1, "%s timed out waiting for AXI4 read data handshakes", vip_name);
-          end
-        end while(!(vif.rready));
+    for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
+      cycles = 0;
+      vif.rdata <= data[beat_idx];
+      vif.rlast <= (beat_idx == (beat_count - 1));
+      do begin
+        @(posedge vif.aclk);
+        cycles++;
+        if (cycles >= timeout_cycles) begin
+          $fatal(1, "%s timed out waiting for AXI4 read data handshakes", vip_name);
+        end
+      end while (!(vif.rready));
     end
 
     vif.rvalid <= 0;
@@ -370,23 +352,27 @@ class Axi4FullSlaveVIP #(
   endtask
 
   // Complete read transaction: accept address + send all data beats
-  task automatic respond_read(
-      ref logic [DATA_WIDTH-1:0] data[],
-      input logic [1:0]          resp = 2'b00);
+  task automatic respond_read(ref logic [DATA_WIDTH-1:0] data[], input logic [1:0] resp = 2'b00);
     logic [ADDR_WIDTH-1:0] addr;
-    logic [  ID_WIDTH-1:0] id;
-    logic [ LEN_WIDTH-1:0] len;
+    logic [ID_WIDTH-1:0] id;
+    logic [LEN_WIDTH-1:0] len;
     logic [SIZE_WIDTH-1:0] size;
     logic [BURST_WIDTH-1:0] burst;
-    logic [  PROT_WIDTH-1:0] prot;
+    logic [PROT_WIDTH-1:0] prot;
     int unsigned beat_count;
 
     recv_archn(addr, id, len, size, burst, prot);
     beat_count = int'(len) + 1;
 
-    assert(data.size() >= beat_count)
-    else $fatal(1, "%s respond_read data array too short (need %0d, got %0d)",
-               vip_name, beat_count, data.size());
+    assert (data.size() >= beat_count)
+    else
+      $fatal(
+          1,
+          "%s respond_read data array too short (need %0d, got %0d)",
+          vip_name,
+          beat_count,
+          data.size()
+      );
 
     send_rchn(data, id, resp);
 

@@ -169,7 +169,7 @@ class Axi4FullMasterVIP #(
 
     apply_pause();
 
-    cycles       = 0;
+    cycles = 0;
     do begin
       vif.awid     <= id;
       vif.awaddr   <= addr;
@@ -211,8 +211,8 @@ class Axi4FullMasterVIP #(
     apply_pause();
 
 
-    for(beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
-      cycles     = 0;
+    for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
+      cycles = 0;
       do begin
         cycles++;
         vif.wdata  <= data[beat_idx];
@@ -224,7 +224,7 @@ class Axi4FullMasterVIP #(
         if (cycles >= timeout_cycles) begin
           $fatal(1, "%s timed out waiting for AXI4 write data handshakes", vip_name);
         end
-      end while(!vif.wready);
+      end while (!vif.wready);
     end
 
     vif.wvalid <= 1'b0;
@@ -246,7 +246,7 @@ class Axi4FullMasterVIP #(
       if (cycles >= timeout_cycles) begin
         $fatal(1, "%s timed out waiting for AXI4 write response", vip_name);
       end
-    end while(!vif.bvalid);
+    end while (!vif.bvalid);
 
     $display("[%0t] %s RX B bresp=%0h", $time, vip_name, resp);
 
@@ -317,7 +317,7 @@ class Axi4FullMasterVIP #(
     vif.aruser   <= '0;
     vif.arvalid  <= 1'b1;
 
-    cycles       = 0;
+    cycles = 0;
     do begin
       @(posedge vif.aclk);
       cycles++;
@@ -334,7 +334,7 @@ class Axi4FullMasterVIP #(
 
   // Read Data Channel - Receive read data phase
   task recv_rchn(ref logic [DATA_WIDTH-1:0] data[], ref logic [1:0] resp[],
-                     input logic [ID_WIDTH-1:0] id = '0);
+                 input logic [ID_WIDTH-1:0] id = '0);
     int unsigned beat_count;
     int unsigned beat_idx;
     int unsigned cycles;
@@ -348,7 +348,7 @@ class Axi4FullMasterVIP #(
     apply_pause();
 
     vif.rready <= 1;
-    for(beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
+    for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
       cycles = 0;
       do begin
         @(posedge vif.aclk);
@@ -356,7 +356,7 @@ class Axi4FullMasterVIP #(
         if (cycles >= timeout_cycles) begin
           $fatal(1, "%s timed out waiting for AXI4 read data", vip_name);
         end
-      end while(!vif.rvalid);
+      end while (!vif.rvalid);
       data[beat_idx] = vif.rdata;
       resp[beat_idx] = vif.rresp;
       assert (vif.rid == id)
