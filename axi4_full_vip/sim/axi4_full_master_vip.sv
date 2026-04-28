@@ -141,17 +141,6 @@ class Axi4FullMasterVIP #(
     vif.rready   <= 1'b0;
   endtask
 
-  // Single-beat write transaction
-  task write_single(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
-                    input logic [STRB_WIDTH-1:0] strb = '1, input logic [ID_WIDTH-1:0] id = '0,
-                    output logic [1:0] resp);
-    begin
-      send_awchn(addr, 1, id);
-      send_wchn(data, strb, 1'b1);
-      recv_bchn(resp);
-    end
-  endtask
-
   // Write Address Channel - Send write address phase
   task send_awchn(
       input logic [ADDR_WIDTH-1:0] addr, input int unsigned beat_count = 1,
@@ -240,39 +229,6 @@ class Axi4FullMasterVIP #(
     // @(posedge vif.aclk);
   endtask
 
-  task write_burst(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data[],
-                   input logic [STRB_WIDTH-1:0] strb[], input logic [ID_WIDTH-1:0] id = '0,
-                   input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
-                   input logic [BURST_WIDTH-1:0] burst = 2'b01,
-                   input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
-    int unsigned beat_count;
-    int unsigned beat_idx;
-
-    beat_count = data.size();
-    assert (beat_count > 0)
-    else $fatal(1, "%s write_burst called with no data beats", vip_name);
-    assert (strb.size() >= beat_count)
-    else $fatal(1, "%s write_burst strb array too short", vip_name);
-
-    // Call the three channel APIs in sequence
-    send_awchn(addr, beat_count, id, size, burst, prot);
-    for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
-      send_wchn(data[beat_idx], strb[beat_idx], beat_idx == (beat_count - 1));
-    end
-    recv_bchn(resp);
-  endtask
-
-  // Single-beat read transaction
-  task read_single(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
-                   output logic [1:0] resp, input logic [ID_WIDTH-1:0] id = '0);
-    logic [ID_WIDTH-1:0] act_id;
-    logic act_last;
-    begin
-      send_archn(addr, 1, id);
-      recv_rchn(data, resp, act_id, act_last);
-    end
-  endtask
-
   // Read Address Channel - Send read address phase
   task send_archn(
       input logic [ADDR_WIDTH-1:0] addr, input int unsigned beat_count = 1,
@@ -337,6 +293,50 @@ class Axi4FullMasterVIP #(
     $display("[%0t] %s RX R beats=%0d id=%0d", $time, vip_name, beat_count, id);
 
     vif.rready <= 0;
+  endtask
+
+  // Single-beat write transaction
+  task write_single(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
+                    input logic [STRB_WIDTH-1:0] strb = '1, input logic [ID_WIDTH-1:0] id = '0,
+                    output logic [1:0] resp);
+    begin
+      send_awchn(addr, 1, id);
+      send_wchn(data, strb, 1'b1);
+      recv_bchn(resp);
+    end
+  endtask
+
+  // Single-beat read transaction
+  task read_single(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
+                   output logic [1:0] resp, input logic [ID_WIDTH-1:0] id = '0);
+    logic [ID_WIDTH-1:0] act_id;
+    logic act_last;
+    begin
+      send_archn(addr, 1, id);
+      recv_rchn(data, resp, act_id, act_last);
+    end
+  endtask
+
+  task write_burst(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data[],
+                   input logic [STRB_WIDTH-1:0] strb[], input logic [ID_WIDTH-1:0] id = '0,
+                   input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
+                   input logic [BURST_WIDTH-1:0] burst = 2'b01,
+                   input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
+    int unsigned beat_count;
+    int unsigned beat_idx;
+
+    beat_count = data.size();
+    assert (beat_count > 0)
+    else $fatal(1, "%s write_burst called with no data beats", vip_name);
+    assert (strb.size() >= beat_count)
+    else $fatal(1, "%s write_burst strb array too short", vip_name);
+
+    // Call the three channel APIs in sequence
+    send_awchn(addr, beat_count, id, size, burst, prot);
+    for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
+      send_wchn(data[beat_idx], strb[beat_idx], beat_idx == (beat_count - 1));
+    end
+    recv_bchn(resp);
   endtask
 
   task read_burst(
