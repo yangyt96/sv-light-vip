@@ -18,6 +18,18 @@ class I2SRxVIP #(
     timeout_cycles = cycles;
   endfunction
 
+  task automatic wait_reset_release();
+    int unsigned cycles;
+    cycles = 0;
+    while (!vif.rstn) begin
+      @(posedge vif.clk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for I2S reset release", vip_name);
+      end
+    end
+  endtask
+
   // API: receive one stereo I2S frame, MSB first.
   task automatic recv_frame(output logic [SAMPLE_WIDTH-1:0] left_sample,
                             output logic [SAMPLE_WIDTH-1:0] right_sample, output bit frame_error);
@@ -27,14 +39,7 @@ class I2SRxVIP #(
 
     begin
       int unsigned cycles;
-      cycles = 0;
-      while (!vif.rstn) begin
-        @(posedge vif.clk);
-        cycles++;
-        if (cycles >= timeout_cycles) begin
-          $fatal(1, "%s timed out waiting for I2S reset release", vip_name);
-        end
-      end
+      wait_reset_release();
       cycles = 0;
       while (!(vif.bclk === 1'b0 && vif.ws === 1'b0)) begin
         @(posedge vif.clk);

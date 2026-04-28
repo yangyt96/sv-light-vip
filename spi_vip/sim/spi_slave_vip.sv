@@ -36,6 +36,18 @@ class SpiSlaveVIP #(
     vif.miso <= 1'b0;
   endtask
 
+  task automatic wait_reset_release();
+    int unsigned cycles;
+    cycles = 0;
+    while (!vif.rstn) begin
+      @(posedge vif.clk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for SPI reset release", vip_name);
+      end
+    end
+  endtask
+
   // Wait for the clock edge where data is sampled (MOSI read by slave).
   // When cpol == cpha: sample on rising edge; when cpol != cpha: sample on falling edge.
   task automatic wait_sample_edge();
@@ -68,14 +80,7 @@ class SpiSlaveVIP #(
 
     rx_data = '0;
 
-    cycles  = 0;
-    while (!vif.rstn) begin
-      @(posedge vif.clk);
-      cycles++;
-      if (cycles >= timeout_cycles) begin
-        $fatal(1, "%s timed out waiting for SPI reset release", vip_name);
-      end
-    end
+    wait_reset_release();
     cycles = 0;
     while (vif.cs_n !== 1'b1) begin
       @(posedge vif.clk);

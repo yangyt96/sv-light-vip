@@ -49,6 +49,26 @@ class I2STxVIP #(
     repeat (HALF_BCLK_CYCLES) @(posedge vif.clk);
   endtask
 
+  task automatic wait_reset_release();
+    int unsigned cycles;
+    cycles = 0;
+    while (!vif.rstn) begin
+      @(posedge vif.clk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for I2S reset release", vip_name);
+      end
+    end
+  endtask
+
+  task automatic apply_pause();
+    int unsigned pause_cycles;
+    if (enable_pause_generator) begin
+      pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
+      repeat (pause_cycles) @(posedge vif.clk);
+    end
+  endtask
+
   task automatic drive_bit(input bit value);
     vif.sd <= value;
     wait_half_bclk();
@@ -61,17 +81,9 @@ class I2STxVIP #(
   // WS=0 is left, WS=1 is right. Each channel has one lead bit before the MSB.
   task automatic send_frame(input logic [SAMPLE_WIDTH-1:0] left_sample,
                             input logic [SAMPLE_WIDTH-1:0] right_sample);
-    int unsigned cycles;
     int unsigned pause_cycles;
 
-    cycles = 0;
-    while (!vif.rstn) begin
-      @(posedge vif.clk);
-      cycles++;
-      if (cycles >= timeout_cycles) begin
-        $fatal(1, "%s timed out waiting for I2S reset release", vip_name);
-      end
-    end
+    wait_reset_release();
     @(posedge vif.clk);
 
     vif.ws <= 1'b0;

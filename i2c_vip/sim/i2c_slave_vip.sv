@@ -35,10 +35,8 @@ class I2CSlaveVIP;
     vif.slave_scl_low <= 1'b0;
   endtask
 
-  task automatic wait_start();
+  task automatic wait_reset_release();
     int unsigned cycles;
-    bit prev_sda;
-
     cycles = 0;
     while (!vif.rstn) begin
       @(posedge vif.clk);
@@ -47,6 +45,13 @@ class I2CSlaveVIP;
         $fatal(1, "%s timed out waiting for I2C reset release", vip_name);
       end
     end
+  endtask
+
+  task automatic wait_start();
+    int unsigned cycles;
+    bit prev_sda;
+
+    wait_reset_release();
     cycles = 0;
     while (!(vif.scl === 1'b1 && vif.sda === 1'b1)) begin
       @(posedge vif.clk);

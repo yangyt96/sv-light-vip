@@ -62,16 +62,8 @@ class UartTxVIP #(
     vif.serial_data <= 1'b1;
   endtask
 
-  task automatic drive_bit(input bit bit_value);
-    vif.serial_data <= bit_value;
-    repeat (CLKS_PER_BIT) @(posedge vif.clk);
-  endtask
-
-  // API: transmit one UART frame, 8N1 by default, LSB first.
-  task send_frame(input logic [DATA_BITS-1:0] data);
+  task automatic wait_reset_release();
     int unsigned cycles;
-    int unsigned pause_cycles;
-
     cycles = 0;
     while (!vif.rstn) begin
       @(posedge vif.clk);
@@ -80,6 +72,26 @@ class UartTxVIP #(
         $fatal(1, "%s timed out waiting for UART reset release", vip_name);
       end
     end
+  endtask
+
+  task automatic apply_pause();
+    int unsigned pause_cycles;
+    if (enable_pause_generator) begin
+      pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
+      repeat (pause_cycles) @(posedge vif.clk);
+    end
+  endtask
+
+  task automatic drive_bit(input bit bit_value);
+    vif.serial_data <= bit_value;
+    repeat (CLKS_PER_BIT) @(posedge vif.clk);
+  endtask
+
+  // API: transmit one UART frame, 8N1 by default, LSB first.
+  task send_frame(input logic [DATA_BITS-1:0] data);
+    int unsigned pause_cycles;
+
+    wait_reset_release();
     @(posedge vif.clk);
 
     // Start bit

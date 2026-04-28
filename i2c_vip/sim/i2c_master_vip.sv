@@ -4,19 +4,40 @@ class I2CMasterVIP #(
 
   virtual i2c_if.master vif;
   string vip_name;
+  bit enable_pause_generator;
+  int unsigned min_pause_cycles;
+  int unsigned max_pause_cycles;
   int unsigned timeout_cycles;
 
   function new(virtual i2c_if.master vif, string vip_name = "i2c_master_vip");
     assert (HALF_SCL_CYCLES > 0)
     else $error("[%s] HALF_SCL_CYCLES=%0d must be > 0", vip_name, HALF_SCL_CYCLES);
-    this.vif       = vif;
-    this.vip_name  = vip_name;
-    timeout_cycles = 3000;
+    this.vif               = vif;
+    this.vip_name          = vip_name;
+    enable_pause_generator = 1'b0;
+    min_pause_cycles       = 0;
+    max_pause_cycles       = 0;
+    timeout_cycles         = 3000;
+  endfunction
+
+  function void configure_pause_generator(bit enable, int unsigned min_cycles = 0,
+                                          int unsigned max_cycles = 0);
+    enable_pause_generator = enable;
+    min_pause_cycles       = min_cycles;
+    max_pause_cycles       = (max_cycles < min_cycles) ? min_cycles : max_cycles;
   endfunction
 
   function void configure_timeout(int unsigned cycles);
     timeout_cycles = cycles;
   endfunction
+
+  task automatic apply_pause();
+    int unsigned pause_cycles;
+    if (enable_pause_generator) begin
+      pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
+      repeat (pause_cycles) @(posedge vif.clk);
+    end
+  endtask
 
   // Clear all master output signals to default state
   task automatic clear_outputs();

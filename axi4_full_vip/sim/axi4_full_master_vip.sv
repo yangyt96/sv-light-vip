@@ -89,10 +89,8 @@ class Axi4FullMasterVIP #(
     timeout_cycles = cycles;
   endfunction
 
-  task automatic apply_pause();
-    int unsigned pause_cycles;
+  task automatic wait_reset_release();
     int unsigned cycles;
-
     cycles = 0;
     while (!vif.aresetn) begin
       @(posedge vif.aclk);
@@ -101,6 +99,10 @@ class Axi4FullMasterVIP #(
         $fatal(1, "%s timed out waiting for AXI4 reset release", vip_name);
       end
     end
+  endtask
+
+  task automatic apply_pause();
+    int unsigned pause_cycles;
     if (enable_pause_generator) begin
       pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
       repeat (pause_cycles) @(posedge vif.aclk);
@@ -297,6 +299,7 @@ class Axi4FullMasterVIP #(
                         output logic [1:0] resp);
     logic [ID_WIDTH-1:0] act_id;
     logic [BUSER_WIDTH-1:0] act_user;
+    wait_reset_release();
     apply_pause();
     send_awchn(addr, 1, id);
     apply_pause();
@@ -313,6 +316,7 @@ class Axi4FullMasterVIP #(
     logic [   ID_WIDTH-1:0] act_id;
     logic                   act_last;
     logic [RUSER_WIDTH-1:0] act_user;
+    wait_reset_release();
     apply_pause();
     send_archn(addr, 1, id);
     apply_pause();
@@ -336,6 +340,7 @@ class Axi4FullMasterVIP #(
     else $fatal(1, "%s write_req_burst strb array too short", vip_name);
 
     // Call the three channel APIs in sequence
+    wait_reset_release();
     apply_pause();
     send_awchn(addr, beat_count, id, size, burst, prot);
     for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
@@ -363,6 +368,7 @@ class Axi4FullMasterVIP #(
     else $fatal(1, "%s read_req_burst resp array too short", vip_name);
 
     // Call the two channel APIs in sequence
+    wait_reset_release();
     apply_pause();
     send_archn(addr, beat_count, id, size, burst, prot);
     for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin

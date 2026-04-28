@@ -51,11 +51,8 @@ class Axi4LiteMasterVIP #(
     timeout_cycles = cycles;
   endfunction
 
-  // Wait for reset release and optionally insert random pause cycles
-  task automatic apply_pause();
-    int unsigned pause_cycles;
+  task automatic wait_reset_release();
     int unsigned cycles;
-
     cycles = 0;
     while (!vif.aresetn) begin
       @(posedge vif.aclk);
@@ -64,6 +61,11 @@ class Axi4LiteMasterVIP #(
         $fatal(1, "%s timed out waiting for AXI4-Lite reset release", vip_name);
       end
     end
+  endtask
+
+  // Apply random pause cycles only (no reset wait — call wait_reset_release() separately)
+  task automatic apply_pause();
+    int unsigned pause_cycles;
     if (enable_pause_generator) begin
       pause_cycles = $urandom_range(max_pause_cycles, min_pause_cycles);
       repeat (pause_cycles) @(posedge vif.aclk);
@@ -166,6 +168,7 @@ class Axi4LiteMasterVIP #(
                         input logic [STRB_WIDTH-1:0] strb = '1, output logic [1:0] resp,
                         input logic [2:0] prot = 3'b000);
 
+    wait_reset_release();
     apply_pause();
     send_awchn(addr, prot);
     apply_pause();
@@ -233,6 +236,7 @@ class Axi4LiteMasterVIP #(
   task read_req_single(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
                        output logic [1:0] resp, input logic [2:0] prot = 3'b000);
 
+    wait_reset_release();
     apply_pause();
     send_archn(addr, prot);
     apply_pause();
