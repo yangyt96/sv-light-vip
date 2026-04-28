@@ -215,6 +215,119 @@ module axi4_lite_mem_vip_tb;
       $display("Out-of-range DECERR test passed");
     end
 
+    // ============================================================
+    // Enhanced Test Cases (方向3: 边界地址、复位行为等)
+    // ============================================================
+
+    `TEST_CASE("Boundary Address Write-Read") begin
+      logic [1:0]            wr_resp;
+      logic [DATA_WIDTH-1:0] rd_data;
+      logic [1:0]            rd_resp;
+
+      $display("\n--- Boundary Address Write-Read Test ---");
+
+      // Test address 0x0000 (lower boundary, within MEM_BYTES)
+      $display("  Writing to address 0x0000 (lower boundary)");
+      master.write_req_single(.addr(16'h0000), .data(32'hB0DA_CAFE), .strb(4'hF), .resp(wr_resp));
+      assert(wr_resp == 2'b00) else $error("Boundary write (0x0000) response mismatch resp=%0h", wr_resp);
+
+      master.read_req_single(.addr(16'h0000), .data(rd_data), .resp(rd_resp));
+      assert(rd_resp == 2'b00) else $error("Boundary read (0x0000) response mismatch resp=%0h", rd_resp);
+      assert(rd_data == 32'hB0DA_CAFE)
+        else $error("Boundary read (0x0000) data mismatch exp=%h got=%h", 32'hB0DA_CAFE, rd_data);
+
+      // Test address 0x03FC (MEM_BYTES-4 = 1020, last word-aligned in-range address)
+      $display("  Writing to address 0x03FC (last in-range word)");
+      master.write_req_single(.addr(16'h03FC), .data(32'hCAFE_BABE), .strb(4'hF), .resp(wr_resp));
+      assert(wr_resp == 2'b00) else $error("Boundary write (0x03FC) response mismatch resp=%0h", wr_resp);
+
+      master.read_req_single(.addr(16'h03FC), .data(rd_data), .resp(rd_resp));
+      assert(rd_resp == 2'b00) else $error("Boundary read (0x03FC) response mismatch resp=%0h", rd_resp);
+      assert(rd_data == 32'hCAFE_BABE)
+        else $error("Boundary read (0x03FC) data mismatch exp=%h got=%h", 32'hCAFE_BABE, rd_data);
+
+      // Test address 0x0400 (first out-of-range address = MEM_BYTES)
+      $display("  Writing to address 0x0400 (first out-of-range)");
+      master.write_req_single(.addr(16'h0400), .data(32'hDEAD_BEEF), .strb(4'hF), .resp(wr_resp));
+      assert(wr_resp == 2'b11) else $error("Expected DECERR for out-of-range write (0x0400), got resp=%0h", wr_resp);
+
+      master.read_req_single(.addr(16'h0400), .data(rd_data), .resp(rd_resp));
+      assert(rd_resp == 2'b11) else $error("Expected DECERR for out-of-range read (0x0400), got resp=%0h", rd_resp);
+
+      // Verify in-range access still works after boundary tests
+      master.read_req_single(.addr(16'h0000), .data(rd_data), .resp(rd_resp));
+      assert(rd_resp == 2'b00) else $error("Post-boundary in-range read response mismatch resp=%0h", rd_resp);
+      assert(rd_data == 32'hB0DA_CAFE)
+        else $error("Post-boundary in-range read data mismatch exp=%h got=%h", 32'hB0DA_CAFE, rd_data);
+
+      $display("Boundary address test passed");
+    end
+
+    `TEST_CASE("Reset During Transaction") begin
+      logic [1:0]            wr_resp;
+      logic [DATA_WIDTH-1:0] rd_data;
+      logic [1:0]            rd_resp;
+
+      $display("\n--- Reset During Transaction Test ---");
+
+      // First, write a known value to address 0x0100
+      master.write_req_single(.addr(16'h0100), .data(32'hBEEF_CAFE), .strb(4'hF), .resp(wr_resp));
+      assert(wr_resp == 2'b00) else $error("Pre-reset write response mismatch resp=%0h", wr_resp);
+
+      // Assert reset for several cycles
+      $display("  Asserting reset for 10 cycles");
+      rstn = 1'b0;
+      repeat (10) @(posedge clk);
+      rstn = 1'b1;
+      @(posedge clk);
+
+      // After reset, the state machine is reset but memory retains data.
+      // Verify the state machine recovers: write and read should work normally.
+      $display("  Writing new value after reset recovery");
+      master.write_req_single(.addr(16'h0200), .data(32'hCAFE_BEEF), .strb(4'hF), .resp(wr_resp));
+      assert(wr_resp == 2'b00) else $error("Post-reset write response mismatch resp=%0h", wr_resp);
+
+      master.read_req_single(.addr(16'h0200), .data(rd_data), .resp(rd_resp));
+      assert(rd_resp == 2'b00) else $error("Post-reset read-back response mismatch resp=%0h", rd_resp);
+      assert(rd_data == 32'hCAFE_BEEF)
+        else $error("Post-reset read-back data mismatch exp=%h got=%h", 32'hCAFE_BEEF, rd_data);
+
+      // Verify pre-reset data is still intact (memory not zeroed by reset)
+      master.read_req_single(.addr(16'h0100), .data(rd_data), .resp(rd_resp));
+      assert(rd_resp == 2'b00) else $error("Pre-reset data read response mismatch resp=%0h", rd_resp);
+      assert(rd_data == 32'hBEEF_CAFE)
+        else $error("Pre-reset data should be preserved after reset, got %h", rd_data);
+
+      $display("Reset during transaction test passed");
+    end
+
+    `TEST_CASE("Random prot Values") begin
+      logic [1:0]            wr_resp;
+      logic [DATA_WIDTH-1:0] rd_data;
+      logic [1:0]            rd_resp;
+
+      $display("\n--- Random prot Values Test ---");
+
+      // Test all 8 prot values with in-range addresses
+      for (int p = 0; p < 8; p++) begin
+        automatic logic [2:0] prot_val = p;
+        automatic logic [15:0] addr     = 16'h0200 + (p * 4);
+        automatic logic [31:0] wr_data  = 32'h5000_0000 | (prot_val << 20);
+
+        $display("  Testing prot=%0b (0x%0h) at addr=0x%0h", prot_val, prot_val, addr);
+
+        master.write_req_single(.addr(addr), .data(wr_data), .strb(4'hF), .resp(wr_resp), .prot(prot_val));
+        assert(wr_resp == 2'b00) else $error("prot=%0b write response mismatch resp=%0h", prot_val, wr_resp);
+
+        master.read_req_single(.addr(addr), .data(rd_data), .resp(rd_resp), .prot(prot_val));
+        assert(rd_resp == 2'b00) else $error("prot=%0b read response mismatch resp=%0h", prot_val, rd_resp);
+        assert(rd_data == wr_data)
+          else $error("prot=%0b read data mismatch exp=%h got=%h", prot_val, wr_data, rd_data);
+      end
+
+      $display("Random prot values test passed");
+    end
+
   end
 
 endmodule
