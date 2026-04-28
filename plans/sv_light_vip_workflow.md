@@ -6,7 +6,7 @@
 > 语言: 简体中文 (zh-CN) — 与用户沟通语言
 > Commit 语言: 英语 — 代码提交信息使用英语
 >
-> 版本: v2.2 — 新增 Phase 7 流程反思、角色头部说明
+> 版本: v2.3 — 新增 vif 赋值规则、assertion 风格、Makefile 优先、提交后询问下一步
 
 ---
 
@@ -137,6 +137,17 @@
     - VIP 类内部定义的 `localparam`（如 `LEN_WIDTH`, `SIZE_WIDTH`）在 testbench 中不可见
     - 声明变量时必须使用具体位宽（如 `logic [7:0] tmp_len` 而非 `logic [LEN_WIDTH-1:0] tmp_len`）
     - 或从 VIP 类外部参数获取（如 `ID_WIDTH`, `ADDR_WIDTH` 是 testbench 的 `localparam`）
+  - **VIP 类中 vif 信号驱动必须使用非阻塞赋值 (`<=`)**:
+    - Virtual interface 是硬件信号的代理，驱动方式应与 RTL 一致
+    - 所有通过 `vif.xxx` 驱动的信号必须使用 `<=`（非阻塞赋值）
+    - ❌ `vif.pready = 1'b1;` — 阻塞赋值，可能导致竞争条件
+    - ✅ `vif.pready <= 1'b1;` — 非阻塞赋值，时钟边沿同步更新
+    - 此规则适用于所有 VIP（AXI4-Stream/Full/Lite、APB、SPI、I2C 等）
+  - **Assertion 风格: 优先使用合并条件而非 `if` 嵌套**:
+    - 当 assertion 需要条件判断时，使用逻辑运算符合并条件
+    - ❌ `if (tkeep.size() > 0) assert (tkeep.size() >= beat_count);`
+    - ✅ `assert (tkeep.size() == 0 || tkeep.size() >= beat_count);`
+    - 合并条件更简洁，避免不必要的 `if` 嵌套
 
 ### Phase 4: 验证
 
@@ -160,6 +171,7 @@
    ```bash
    make test-<vip_name>
    ```
+   - **始终使用 `make test-<vip_name>` 而非直接调用 `python3 <vip>/tb/run.py`**
    - 确认所有测试用例通过（P=全部, S=0, F=0）
    - 新增测试后，总测试数应增加，且原有测试不受影响
 
@@ -170,6 +182,8 @@
 ```
 
 **原则**: 只提交本次修改涉及的文件，不提交无关文件。
+
+**提交后**: 主动询问用户"下一步做什么"，列出可选方向供用户选择。
 
 ```bash
 # 1. 查看当前修改状态
@@ -331,3 +345,6 @@ All N/N tests passed, lint and format clean."
 12. **复位后 slave VIP 状态丢失** — 复位后 slave VIP 的 `clear_outputs()` 必须被调用以恢复信号状态（`wready`, `arready` 等被清零）。否则后续事务会因 slave 不响应而超时
 13. **复位期间事务超时** — 不要在复位期间让 master 等待 slave 响应（如 `send_wchn` 等待 `wready`），这会导致 `$fatal` 超时。正确做法：先完成或放弃当前事务，再复位，复位后重新初始化
 14. **VIP 类内部参数不可见** — 在 testbench 中声明变量时，不能使用 VIP 类内部的 `localparam`（如 `LEN_WIDTH`），必须使用具体位宽（`logic [7:0]`）
+15. **vif 信号使用阻塞赋值 (`=`)** — 在 VIP 类中通过 virtual interface 驱动信号时，必须使用非阻塞赋值 (`<=`)。阻塞赋值 (`=`) 可能导致竞争条件和时序错误。所有 VIP（AXI4-Stream/Full/Lite、APB、SPI、I2C 等）的 class 方法中，`vif.xxx = value` 都应改为 `vif.xxx <= value`
+16. **Assertion 使用 `if` 嵌套** — 当 assertion 需要条件判断时，应使用逻辑运算符合并条件，而非 `if` 嵌套。`assert (cond1 || cond2)` 比 `if (cond1) assert (cond2)` 更简洁清晰
+17. **直接调用 `run.py` 而非 `make test-*`** — 项目提供统一的 Makefile 入口，应始终使用 `make test-<vip_name>` 运行仿真，而非直接调用 `python3 <vip>/tb/run.py`
