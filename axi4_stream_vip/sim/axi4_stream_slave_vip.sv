@@ -114,18 +114,9 @@ class Axi4StreamSlaveVIP #(
     max_beats = tdata.size();
     assert (max_beats > 0)
     else $fatal(1, "%s recv_multi called with no data beats", vip_name);
-    assert (tkeep.size() >= max_beats)
-    else $fatal(1, "%s recv_multi tkeep array too short", vip_name);
-    assert (tstrb.size() >= max_beats)
-    else $fatal(1, "%s recv_multi tstrb array too short", vip_name);
-    assert (tlast.size() >= max_beats)
-    else $fatal(1, "%s recv_multi tlast array too short", vip_name);
-    assert (tid.size() >= max_beats)
-    else $fatal(1, "%s recv_multi tid array too short", vip_name);
-    assert (tdest.size() >= max_beats)
-    else $fatal(1, "%s recv_multi tdest array too short", vip_name);
-    assert (tuser.size() >= max_beats)
-    else $fatal(1, "%s recv_multi tuser array too short", vip_name);
+    assert (tkeep.size() >= max_beats && tstrb.size() >= max_beats && tlast.size() >= max_beats &&
+            tid.size() >= max_beats && tdest.size() >= max_beats && tuser.size() >= max_beats)
+    else $fatal(1, "%s recv_multi: all sideband arrays must be >= max_beats=%0d", vip_name, max_beats);
 
     beat_idx = 0;
     do begin

@@ -119,18 +119,9 @@ class Axi4StreamMasterVIP #(
     beat_count = tdata.size();
     assert (beat_count > 0)
     else $fatal(1, "%s send_multi called with no data beats", vip_name);
-    assert (tkeep.size() >= beat_count)
-    else $fatal(1, "%s send_multi tkeep array too short", vip_name);
-    assert (tstrb.size() >= beat_count)
-    else $fatal(1, "%s send_multi tstrb array too short", vip_name);
-    assert (tlast.size() >= beat_count)
-    else $fatal(1, "%s send_multi tlast array too short", vip_name);
-    assert (tid.size() >= beat_count)
-    else $fatal(1, "%s send_multi tid array too short", vip_name);
-    assert (tdest.size() >= beat_count)
-    else $fatal(1, "%s send_multi tdest array too short", vip_name);
-    assert (tuser.size() >= beat_count)
-    else $fatal(1, "%s send_multi tuser array too short", vip_name);
+    assert (tkeep.size() >= beat_count && tstrb.size() >= beat_count && tlast.size() >= beat_count &&
+            tid.size() >= beat_count && tdest.size() >= beat_count && tuser.size() >= beat_count)
+    else $fatal(1, "%s send_multi: all sideband arrays must be >= beat_count=%0d", vip_name, beat_count);
 
     for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
       // apply pause between beats (not before first beat, to match AXI4-Full pattern)

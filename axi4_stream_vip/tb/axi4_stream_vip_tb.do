@@ -1,32 +1,18 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
-add wave -noupdate /axi4_stream_dut_tb/dut/DATA_WIDTH
-add wave -noupdate /axi4_stream_dut_tb/dut/KEEP_WIDTH
-add wave -noupdate /axi4_stream_dut_tb/dut/TID_WIDTH
-add wave -noupdate /axi4_stream_dut_tb/dut/TDEST_WIDTH
-add wave -noupdate /axi4_stream_dut_tb/dut/TUSER_WIDTH
-add wave -noupdate /axi4_stream_dut_tb/dut/aclk
-add wave -noupdate /axi4_stream_dut_tb/dut/aresetn
-add wave -noupdate /axi4_stream_dut_tb/dut/s_axis_tdata
-add wave -noupdate /axi4_stream_dut_tb/dut/s_axis_tvalid
-add wave -noupdate /axi4_stream_dut_tb/dut/s_axis_tready
-add wave -noupdate /axi4_stream_dut_tb/dut/s_axis_tkeep
-add wave -noupdate /axi4_stream_dut_tb/dut/s_axis_tstrb
-add wave -noupdate /axi4_stream_dut_tb/dut/s_axis_tlast
-add wave -noupdate /axi4_stream_dut_tb/dut/s_axis_tid
-add wave -noupdate /axi4_stream_dut_tb/dut/s_axis_tdest
-add wave -noupdate /axi4_stream_dut_tb/dut/s_axis_tuser
-add wave -noupdate /axi4_stream_dut_tb/dut/m_axis_tdata
-add wave -noupdate /axi4_stream_dut_tb/dut/m_axis_tvalid
-add wave -noupdate /axi4_stream_dut_tb/dut/m_axis_tready
-add wave -noupdate /axi4_stream_dut_tb/dut/m_axis_tkeep
-add wave -noupdate /axi4_stream_dut_tb/dut/m_axis_tstrb
-add wave -noupdate /axi4_stream_dut_tb/dut/m_axis_tlast
-add wave -noupdate /axi4_stream_dut_tb/dut/m_axis_tid
-add wave -noupdate /axi4_stream_dut_tb/dut/m_axis_tdest
-add wave -noupdate /axi4_stream_dut_tb/dut/m_axis_tuser
+add wave -noupdate /axi4_stream_vip_tb/clk
+add wave -noupdate /axi4_stream_vip_tb/rstn
+add wave -noupdate /axi4_stream_vip_tb/axis_if/tvalid
+add wave -noupdate /axi4_stream_vip_tb/axis_if/tready
+add wave -noupdate /axi4_stream_vip_tb/axis_if/tdata
+add wave -noupdate /axi4_stream_vip_tb/axis_if/tkeep
+add wave -noupdate /axi4_stream_vip_tb/axis_if/tstrb
+add wave -noupdate /axi4_stream_vip_tb/axis_if/tlast
+add wave -noupdate /axi4_stream_vip_tb/axis_if/tid
+add wave -noupdate /axi4_stream_vip_tb/axis_if/tdest
+add wave -noupdate /axi4_stream_vip_tb/axis_if/tuser
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {216748768 ps} 0}
+WaveRestoreCursors {{Cursor 1} {0 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
