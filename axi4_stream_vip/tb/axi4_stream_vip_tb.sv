@@ -166,20 +166,20 @@ module axi4_stream_dut_tb;
     exp_tuser = TUSER_WIDTH'(32'h8765_0000 | index);
 
     fork
-      master.transmit(exp_tdata,
-                             exp_tkeep,
-                             exp_tstrb,
-                             exp_tlast,
-                             exp_tid,
-                             exp_tdest,
-                             exp_tuser);
-      slave.receive(rx_tdata,
-                           rx_tkeep,
-                           rx_tstrb,
-                           rx_tlast,
-                           rx_tid,
-                           rx_tdest,
-                           rx_tuser);
+      master.send_single(exp_tdata,
+                                exp_tkeep,
+                                exp_tstrb,
+                                exp_tlast,
+                                exp_tid,
+                                exp_tdest,
+                                exp_tuser);
+      slave.recv_single(rx_tdata,
+                               rx_tkeep,
+                               rx_tstrb,
+                               rx_tlast,
+                               rx_tid,
+                               rx_tdest,
+                               rx_tuser);
     join
 
     assert(rx_tdata == exp_tdata) else $error("Data mismatch at stimulus %0d", index);
@@ -200,13 +200,13 @@ module axi4_stream_dut_tb;
     for (stimulus_idx = start_index;
          stimulus_idx < (start_index + transfer_count);
          stimulus_idx++) begin
-      master.transmit(build_tdata(stimulus_idx),
-                             build_byte_mask(stimulus_idx),
-                             build_byte_mask(stimulus_idx + 1),
-                             ((stimulus_idx % 8) == 7),
-                             TID_WIDTH'(stimulus_idx),
-                             TDEST_WIDTH'(8'h80 | (stimulus_idx & 'h7f)),
-                             TUSER_WIDTH'(32'h8765_0000 | stimulus_idx));
+      master.send_single(build_tdata(stimulus_idx),
+                                build_byte_mask(stimulus_idx),
+                                build_byte_mask(stimulus_idx + 1),
+                                ((stimulus_idx % 8) == 7),
+                                TID_WIDTH'(stimulus_idx),
+                                TDEST_WIDTH'(8'h80 | (stimulus_idx & 'h7f)),
+                                TUSER_WIDTH'(32'h8765_0000 | stimulus_idx));
     end
   endtask
 
@@ -328,7 +328,7 @@ module axi4_stream_dut_tb;
 
       master.configure_pause_generator(1'b0);
       slave.configure_backpressure(1'b0);
-      
+
       // Test multiple burst transfers with different sizes
       for (int burst_idx = 0; burst_idx < 10; burst_idx++) begin
         int unsigned burst_length;
@@ -339,7 +339,7 @@ module axi4_stream_dut_tb;
         logic [TID_WIDTH-1:0]  tx_tid[];
         logic [TDEST_WIDTH-1:0] tx_tdest[];
         logic [TUSER_WIDTH-1:0] tx_tuser[];
-        
+
         logic [DATA_WIDTH-1:0] rx_tdata[];
         logic [KEEP_WIDTH-1:0] rx_tkeep[];
         logic [KEEP_WIDTH-1:0] rx_tstrb[];
@@ -347,7 +347,7 @@ module axi4_stream_dut_tb;
         logic [TID_WIDTH-1:0]  rx_tid[];
         logic [TDEST_WIDTH-1:0] rx_tdest[];
         logic [TUSER_WIDTH-1:0] rx_tuser[];
-        
+
         // Random burst length between 2 and 16 beats
         burst_length = $urandom_range(16, 2);
 
@@ -367,7 +367,7 @@ module axi4_stream_dut_tb;
         rx_tdest  = new[burst_length];
         rx_tuser  = new[burst_length];
 
-        
+
         // Build burst data
         for (int beat_idx = 0; beat_idx < burst_length; beat_idx++) begin
           data_idx = burst_idx * 100 + beat_idx;
@@ -379,13 +379,13 @@ module axi4_stream_dut_tb;
           tx_tdest[beat_idx]  = TDEST_WIDTH'(8'hA0 | (burst_idx & 'h0F));
           tx_tuser[beat_idx]  = TUSER_WIDTH'(32'hABCD_0000 | beat_idx);
         end
-        
+
         // Transmit and receive burst
         fork
-          master.transmit_burst(tx_tdata, tx_tkeep, tx_tstrb, tx_tlast, tx_tid, tx_tdest, tx_tuser);
-          slave.receive_burst(rx_tdata, rx_tkeep, rx_tstrb, rx_tlast, rx_tid, rx_tdest, rx_tuser);
+          master.send_multi(tx_tdata, tx_tkeep, tx_tstrb, tx_tlast, tx_tid, tx_tdest, tx_tuser);
+          slave.recv_multi(rx_tdata, rx_tkeep, rx_tstrb, rx_tlast, rx_tid, rx_tdest, rx_tuser);
         join
-        
+
         // Verify received burst
         assert(rx_tdata.size() == burst_length) else $error("Burst %0d: RX data size mismatch exp=%0d got=%0d", burst_idx, burst_length, rx_tdata.size());
         assert(rx_tkeep.size() == burst_length) else $error("Burst %0d: RX keep size mismatch exp=%0d got=%0d", burst_idx, burst_length, rx_tkeep.size());
@@ -394,7 +394,7 @@ module axi4_stream_dut_tb;
         assert(rx_tid.size() == burst_length) else $error("Burst %0d: RX tid size mismatch exp=%0d got=%0d", burst_idx, burst_length, rx_tid.size());
         assert(rx_tdest.size() == burst_length) else $error("Burst %0d: RX tdest size mismatch exp=%0d got=%0d", burst_idx, burst_length, rx_tdest.size());
         assert(rx_tuser.size() == burst_length) else $error("Burst %0d: RX tuser size mismatch exp=%0d got=%0d", burst_idx, burst_length, rx_tuser.size());
-        
+
         for (int beat_idx = 0; beat_idx < burst_length; beat_idx++) begin
           assert(rx_tdata[beat_idx] == tx_tdata[beat_idx]) else $error("Burst %0d beat %0d: TDATA mismatch exp=%h got=%h", burst_idx, beat_idx, tx_tdata[beat_idx], rx_tdata[beat_idx]);
           assert(rx_tkeep[beat_idx] == tx_tkeep[beat_idx]) else $error("Burst %0d beat %0d: TKEEP mismatch exp=%h got=%h", burst_idx, beat_idx, tx_tkeep[beat_idx], rx_tkeep[beat_idx]);
@@ -404,7 +404,7 @@ module axi4_stream_dut_tb;
           assert(rx_tdest[beat_idx] == tx_tdest[beat_idx]) else $error("Burst %0d beat %0d: TDEST mismatch exp=%h got=%h", burst_idx, beat_idx, tx_tdest[beat_idx], rx_tdest[beat_idx]);
           assert(rx_tuser[beat_idx] == tx_tuser[beat_idx]) else $error("Burst %0d beat %0d: TUSER mismatch exp=%h got=%h", burst_idx, beat_idx, tx_tuser[beat_idx], rx_tuser[beat_idx]);
         end
-        
+
         $display("[%0t] Burst %0d completed successfully with %0d beats", $time, burst_idx, burst_length);
       end
     end
@@ -454,8 +454,8 @@ module axi4_stream_dut_tb;
         end
 
         fork
-          master.transmit(exp_tdata, exp_tkeep, exp_tstrb, exp_tlast, exp_tid, exp_tdest, exp_tuser);
-          slave.receive(rx_tdata, rx_tkeep, rx_tstrb, rx_tlast, rx_tid, rx_tdest, rx_tuser);
+          master.send_single(exp_tdata, exp_tkeep, exp_tstrb, exp_tlast, exp_tid, exp_tdest, exp_tuser);
+          slave.recv_single(rx_tdata, rx_tkeep, rx_tstrb, rx_tlast, rx_tid, rx_tdest, rx_tuser);
         join
 
         assert(rx_tdata == exp_tdata) else $error("Sideband: TDATA mismatch at %0d", stimulus_idx);
