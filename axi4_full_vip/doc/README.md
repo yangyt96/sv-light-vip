@@ -56,15 +56,15 @@ The master VIP drives AXI4-Full traffic through a virtual interface.
 **Single-beat APIs:**
 
 ```systemverilog
-master.write_single(addr, data, strb, id, resp);
-master.read_single(addr, data, resp, id);
+master.write_req_single(addr, data, strb, id, resp);
+master.read_req_single(addr, data, resp, id);
 ```
 
 **Burst APIs:**
 
 ```systemverilog
-master.write_burst(addr, data_array, strb_array, id, size, burst, prot, resp);
-master.read_burst(addr, beat_count, data_array, resp_array, id, size, burst, prot);
+master.write_req_burst(addr, data_array, strb_array, id, size, burst, prot, resp);
+master.read_req_burst(addr, beat_count, data_array, resp_array, id, size, burst, prot);
 ```
 
 **Channel-level APIs (fine-grained control):**
@@ -99,10 +99,10 @@ Its API is symmetric with `Axi4FullMasterVIP`:
 | `recv_bchn()` | `send_bchn()` |
 | `send_archn()` | `recv_archn()` |
 | `recv_rchn()` | `send_rchn()` |
-| `write_burst()` | `expect_write_burst()` |
-| `read_burst()` | `respond_read_burst()` |
-| `write_single()` | `expect_write_single()` |
-| `read_single()` | `respond_read_single()` |
+| `write_req_burst()` | `write_resp_burst()` |
+| `read_req_burst()` | `read_resp_burst()` |
+| `write_req_single()` | `write_resp_single()` |
+| `read_req_single()` | `read_resp_single()` |
 
 #### Channel-level APIs
 
@@ -114,23 +114,23 @@ slave.send_bchn(id, resp);
 
 // Read channel
 slave.recv_archn(addr, id, len, size, burst, prot);
-slave.send_rchn(data[], id, resp);
+slave.send_rchn(data, id, resp, last);  // single beat (scalar)
 ```
 
 #### High-level APIs
 
 ```systemverilog
-// Expect a complete write burst (AW + all W beats) and send B response
-slave.expect_write_burst(data[], strb[], resp);
+// Respond to a complete write burst (AW + all W beats) and send B response
+slave.write_resp_burst(data[], strb[], resp);
 
-// Expect a single-beat write and send B response
-slave.expect_write_single(data, strb, resp);
+// Respond to a single-beat write and send B response
+slave.write_resp_single(data, strb, resp);
 
 // Respond to a read burst (AR + all R beats)
-slave.respond_read_burst(data[], resp);
+slave.read_resp_burst(data[], resp);
 
 // Respond to a single-beat read
-slave.respond_read_single(data, resp);
+slave.read_resp_single(data, resp);
 ```
 
 **Configuration:**

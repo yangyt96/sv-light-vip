@@ -7,13 +7,13 @@
 //   - recv_wchn()  : Receive Write Data Channel  (mirror of Master send_wchn)
 //   - send_bchn()  : Send Write Response Channel  (mirror of Master recv_bchn)
 //   - recv_archn() : Receive Read Address Channel (mirror of Master send_archn)
-//   - send_rchn()  : Send Read Data Channel       (mirror of Master recv_rchn)
+//   - send_rchn()  : Send Read Data Channel (single beat, mirror of Master recv_rchn)
 //
-// High-level convenience tasks:
-//   - expect_write_single() : recv_awchn + recv_wchn (single beat) + send_bchn
-//   - expect_write_burst()  : recv_awchn + recv_wchn (all beats) + send_bchn
-//   - respond_read_single() : recv_archn + send_rchn (single beat)
-//   - respond_read_burst()  : recv_archn + send_rchn (all beats)
+// High-level convenience tasks (symmetric with Master):
+//   - write_resp_single() : recv_awchn + recv_wchn (1 beat) + send_bchn
+//   - write_resp_burst()  : recv_awchn + recv_wchn (all beats) + send_bchn
+//   - read_resp_single()  : recv_archn + send_rchn (1 beat)
+//   - read_resp_burst()   : recv_archn + send_rchn (all beats, loop)
 //
 // Features:
 //   - Backpressure on AW/W/AR channels (stall before ready)
@@ -214,38 +214,6 @@ class Axi4FullSlaveVIP #(
     // @(posedge vif.aclk);
   endtask
 
-  // Wait for and accept a complete write burst (AW + all W beats)
-  task automatic expect_write(output logic [ADDR_WIDTH-1:0] addr, ref logic [DATA_WIDTH-1:0] data[],
-                              ref logic [STRB_WIDTH-1:0] strb[], output logic [ID_WIDTH-1:0] id,
-                              output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
-                              output logic [BURST_WIDTH-1:0] burst,
-                              output logic [PROT_WIDTH-1:0] prot);
-    int unsigned                  beat_count;
-    logic        [DATA_WIDTH-1:0] beat_data;
-    logic        [STRB_WIDTH-1:0] beat_strb;
-    bit                           beat_last;
-
-    recv_awchn(addr, id, len, size, burst, prot);
-    beat_count = int'(len) + 1;
-
-    data = new[beat_count];
-    strb = new[beat_count];
-
-    for (int i = 0; i < beat_count; i++) begin
-      recv_wchn(beat_data, beat_strb, beat_last);
-
-      data[i] = beat_data;
-      strb[i] = beat_strb;
-      if (beat_last && i < (beat_count - 1)) begin
-        $warning("%s WLAST asserted early at beat %0d/%0d", vip_name, i, beat_count);
-      end
-    end
-
-    if (!beat_last) begin
-      $warning("%s WLAST not asserted at final beat %0d", vip_name, beat_count - 1);
-    end
-  endtask
-
   // Send write response (B)
   task automatic send_bchn(input logic [ID_WIDTH-1:0] id, input logic [1:0] resp = 2'b00);
     int unsigned cycles;
@@ -274,44 +242,63 @@ class Axi4FullSlaveVIP #(
 
   // ─────────────────────────────────────────────
   // High-level Write: recv_awchn + recv_wchn (all beats) + send_bchn
-  // Symmetric with Master's write_burst()
+  // Symmetric with Master's write_req_burst()
   // ─────────────────────────────────────────────
-  task automatic expect_write_burst(ref logic [DATA_WIDTH-1:0] data[],
-                                    ref logic [STRB_WIDTH-1:0] strb[],
-                                    input logic [1:0] resp = 2'b00);
+  task automatic write_resp_burst(ref logic [DATA_WIDTH-1:0] data[],
+                                  ref logic [STRB_WIDTH-1:0] strb[],
+                                  input logic [1:0] resp = 2'b00);
     logic [ADDR_WIDTH-1:0] addr;
     logic [ID_WIDTH-1:0] id;
     logic [LEN_WIDTH-1:0] len;
     logic [SIZE_WIDTH-1:0] size;
     logic [BURST_WIDTH-1:0] burst;
     logic [PROT_WIDTH-1:0] prot;
+    int unsigned beat_count;
+    logic [DATA_WIDTH-1:0] beat_data;
+    logic [STRB_WIDTH-1:0] beat_strb;
+    bit beat_last;
 
-    expect_write(addr, data, strb, id, len, size, burst, prot);
+    recv_awchn(addr, id, len, size, burst, prot);
+    beat_count = int'(len) + 1;
+
+    data = new[beat_count];
+    strb = new[beat_count];
+
+    for (int i = 0; i < beat_count; i++) begin
+      recv_wchn(beat_data, beat_strb, beat_last);
+      data[i] = beat_data;
+      strb[i] = beat_strb;
+      if (beat_last && i < (beat_count - 1)) begin
+        $warning("%s WLAST asserted early at beat %0d/%0d", vip_name, i, beat_count);
+      end
+    end
+
+    if (!beat_last) begin
+      $warning("%s WLAST not asserted at final beat %0d", vip_name, beat_count - 1);
+    end
+
     send_bchn(id, resp);
   endtask
 
   // ─────────────────────────────────────────────
   // Single-beat Write: recv_awchn + recv_wchn (1 beat) + send_bchn
-  // Symmetric with Master's write()
+  // Symmetric with Master's write_req_single()
   // ─────────────────────────────────────────────
-  task automatic expect_write_single(input logic [DATA_WIDTH-1:0] data,
-                                     input logic [STRB_WIDTH-1:0] strb = '1,
-                                     input logic [1:0] resp = 2'b00);
+  task automatic write_resp_single(input logic [DATA_WIDTH-1:0] data,
+                                   input logic [STRB_WIDTH-1:0] strb = '1,
+                                   input logic [1:0] resp = 2'b00);
     logic [ADDR_WIDTH-1:0] addr;
     logic [ID_WIDTH-1:0] id;
     logic [LEN_WIDTH-1:0] len;
     logic [SIZE_WIDTH-1:0] size;
     logic [BURST_WIDTH-1:0] burst;
     logic [PROT_WIDTH-1:0] prot;
-    logic [DATA_WIDTH-1:0] data_arr[];
-    logic [STRB_WIDTH-1:0] strb_arr[];
+    logic [DATA_WIDTH-1:0] beat_data;
+    logic [STRB_WIDTH-1:0] beat_strb;
+    bit beat_last;
 
-    data_arr = new[1];
-    strb_arr = new[1];
-    data_arr[0] = data;
-    strb_arr[0] = strb;
-
-    expect_write(addr, data_arr, strb_arr, id, len, size, burst, prot);
+    recv_awchn(addr, id, len, size, burst, prot);
+    recv_wchn(beat_data, beat_strb, beat_last);
     send_bchn(id, resp);
   endtask
 
@@ -355,46 +342,41 @@ class Axi4FullSlaveVIP #(
     vif.arready <= 1'b0;
   endtask
 
-  task automatic send_rchn(input logic [DATA_WIDTH-1:0] data[], input logic [ID_WIDTH-1:0] id,
-                           input logic [1:0] resp = 2'b00);
-    int unsigned beat_count;
-    int unsigned beat_idx;
+  // Send read data (single beat) — symmetric with Master's recv_rchn (scalar)
+  task automatic send_rchn(input logic [DATA_WIDTH-1:0] data, input logic [ID_WIDTH-1:0] id,
+                           input logic [1:0] resp = 2'b00, input logic last = 1'b1);
     int unsigned cycles;
-
-    beat_count = data.size();
-    assert (beat_count > 0)
-    else $fatal(1, "%s send_rchn called with no data beats", vip_name);
 
     apply_stall();
 
     vif.rid    <= id;
+    vif.rdata  <= data;
     vif.rresp  <= resp;
+    vif.rlast  <= last;
     vif.ruser  <= '0;
     vif.rvalid <= 1'b1;
 
-    for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
-      cycles = 0;
-      vif.rdata <= data[beat_idx];
-      vif.rlast <= (beat_idx == (beat_count - 1));
-      do begin
-        @(posedge vif.aclk);
-        cycles++;
-        if (cycles >= timeout_cycles) begin
-          $fatal(1, "%s timed out waiting for AXI4 read data handshakes", vip_name);
-        end
-      end while (!(vif.rready));
-    end
+    cycles = 0;
+    do begin
+      @(posedge vif.aclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for RREADY", vip_name);
+      end
+    end while (!(vif.rready));
+
+    $display("[%0t] %s TX R data=%h id=%0d resp=%0h last=%b", $time, vip_name, data, id, resp, last);
 
     vif.rvalid <= 0;
     // @(posedge vif.aclk);
   endtask
 
   // ─────────────────────────────────────────────
-  // High-level Read: recv_archn + send_rchn (all beats)
-  // Symmetric with Master's read_burst()
+  // High-level Read: recv_archn + send_rchn (all beats, loop)
+  // Symmetric with Master's read_req_burst()
   // ─────────────────────────────────────────────
-  task automatic respond_read_burst(ref logic [DATA_WIDTH-1:0] data[],
-                                    input logic [1:0] resp = 2'b00);
+  task automatic read_resp_burst(ref logic [DATA_WIDTH-1:0] data[],
+                                 input logic [1:0] resp = 2'b00);
     logic [ADDR_WIDTH-1:0] addr;
     logic [ID_WIDTH-1:0] id;
     logic [LEN_WIDTH-1:0] len;
@@ -416,57 +398,85 @@ class Axi4FullSlaveVIP #(
           data.size()
       );
 
-    send_rchn(data, id, resp);
+    for (int i = 0; i < beat_count; i++) begin
+      send_rchn(data[i], id, resp, (i == (beat_count - 1)));
+    end
 
   endtask
 
   // ─────────────────────────────────────────────
   // Single-beat Read: recv_archn + send_rchn (1 beat)
-  // Symmetric with Master's read()
+  // Symmetric with Master's read_req_single()
   // ─────────────────────────────────────────────
-  task automatic respond_read_single(output logic [DATA_WIDTH-1:0] data,
-                                     input logic [1:0] resp = 2'b00);
+  task automatic read_resp_single(output logic [DATA_WIDTH-1:0] data,
+                                  input logic [1:0] resp = 2'b00);
     logic [ADDR_WIDTH-1:0] addr;
     logic [ID_WIDTH-1:0] id;
     logic [LEN_WIDTH-1:0] len;
     logic [SIZE_WIDTH-1:0] size;
     logic [BURST_WIDTH-1:0] burst;
     logic [PROT_WIDTH-1:0] prot;
-    logic [DATA_WIDTH-1:0] data_arr[];
     int unsigned beat_count;
-
-    data_arr = new[1];
 
     recv_archn(addr, id, len, size, burst, prot);
     beat_count = int'(len) + 1;
 
-    assert (data_arr.size() >= beat_count)
+    assert (beat_count == 1)
     else
       $fatal(
           1,
-          "%s respond_read_single data array too short (need %0d, got %0d)",
+          "%s respond_read_single called but master requested %0d beats (use respond_read_burst)",
           vip_name,
-          beat_count,
-          data_arr.size()
+          beat_count
       );
 
-    data_arr[0] = data;
-    send_rchn(data_arr, id, resp);
-    data = data_arr[0];
+    send_rchn(data, id, resp, 1'b1);
   endtask
 
   // ============ Deprecated wrappers (backward compatible) ============
 
-  // Deprecated: use expect_write_burst() instead
+  // Deprecated: use write_resp_burst() instead
   task automatic expect_write_and_respond(ref logic [DATA_WIDTH-1:0] data[],
                                           ref logic [STRB_WIDTH-1:0] strb[],
                                           input logic [1:0] resp = 2'b00);
-    expect_write_burst(data, strb, resp);
+    write_resp_burst(data, strb, resp);
   endtask
 
-  // Deprecated: use respond_read_burst() instead
+  // Deprecated: use read_resp_burst() instead
   task automatic respond_read(ref logic [DATA_WIDTH-1:0] data[], input logic [1:0] resp = 2'b00);
-    respond_read_burst(data, resp);
+    read_resp_burst(data, resp);
+  endtask
+
+  // Deprecated: use write_resp_burst()/write_resp_single() instead
+  task automatic expect_write(output logic [ADDR_WIDTH-1:0] addr, ref logic [DATA_WIDTH-1:0] data[],
+                              ref logic [STRB_WIDTH-1:0] strb[], output logic [ID_WIDTH-1:0] id,
+                              output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
+                              output logic [BURST_WIDTH-1:0] burst,
+                              output logic [PROT_WIDTH-1:0] prot);
+    int unsigned                  beat_count;
+    logic        [DATA_WIDTH-1:0] beat_data;
+    logic        [STRB_WIDTH-1:0] beat_strb;
+    bit                           beat_last;
+
+    recv_awchn(addr, id, len, size, burst, prot);
+    beat_count = int'(len) + 1;
+
+    data = new[beat_count];
+    strb = new[beat_count];
+
+    for (int i = 0; i < beat_count; i++) begin
+      recv_wchn(beat_data, beat_strb, beat_last);
+
+      data[i] = beat_data;
+      strb[i] = beat_strb;
+      if (beat_last && i < (beat_count - 1)) begin
+        $warning("%s WLAST asserted early at beat %0d/%0d", vip_name, i, beat_count);
+      end
+    end
+
+    if (!beat_last) begin
+      $warning("%s WLAST not asserted at final beat %0d", vip_name, beat_count - 1);
+    end
   endtask
 
 endclass

@@ -289,10 +289,10 @@ class Axi4FullMasterVIP #(
     vif.rready <= 0;
   endtask
 
-  // Single-beat write transaction
-  task write_single(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
-                    input logic [STRB_WIDTH-1:0] strb = '1, input logic [ID_WIDTH-1:0] id = '0,
-                    output logic [1:0] resp);
+  // Single-beat write transaction (request side)
+  task write_req_single(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
+                        input logic [STRB_WIDTH-1:0] strb = '1, input logic [ID_WIDTH-1:0] id = '0,
+                        output logic [1:0] resp);
     begin
       send_awchn(addr, 1, id);
       send_wchn(data, strb, 1'b1);
@@ -300,9 +300,9 @@ class Axi4FullMasterVIP #(
     end
   endtask
 
-  // Single-beat read transaction
-  task read_single(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
-                   output logic [1:0] resp, input logic [ID_WIDTH-1:0] id = '0);
+  // Single-beat read transaction (request side)
+  task read_req_single(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
+                       output logic [1:0] resp, input logic [ID_WIDTH-1:0] id = '0);
     logic [ID_WIDTH-1:0] act_id;
     logic act_last;
     begin
@@ -313,19 +313,19 @@ class Axi4FullMasterVIP #(
     end
   endtask
 
-  task write_burst(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data[],
-                   input logic [STRB_WIDTH-1:0] strb[], input logic [ID_WIDTH-1:0] id = '0,
-                   input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
-                   input logic [BURST_WIDTH-1:0] burst = 2'b01,
-                   input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
+  task write_req_burst(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data[],
+                       input logic [STRB_WIDTH-1:0] strb[], input logic [ID_WIDTH-1:0] id = '0,
+                       input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
+                       input logic [BURST_WIDTH-1:0] burst = 2'b01,
+                       input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
     int unsigned beat_count;
     int unsigned beat_idx;
 
     beat_count = data.size();
     assert (beat_count > 0)
-    else $fatal(1, "%s write_burst called with no data beats", vip_name);
+    else $fatal(1, "%s write_req_burst called with no data beats", vip_name);
     assert (strb.size() >= beat_count)
-    else $fatal(1, "%s write_burst strb array too short", vip_name);
+    else $fatal(1, "%s write_req_burst strb array too short", vip_name);
 
     // Call the three channel APIs in sequence
     apply_pause();
@@ -338,7 +338,7 @@ class Axi4FullMasterVIP #(
     recv_bchn(resp);
   endtask
 
-  task read_burst(
+  task read_req_burst(
       input logic [ADDR_WIDTH-1:0] addr, input int unsigned beat_count,
       ref logic [DATA_WIDTH-1:0] data[], ref logic [1:0] resp[], input logic [ID_WIDTH-1:0] id = '0,
       input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
@@ -349,9 +349,9 @@ class Axi4FullMasterVIP #(
     logic [ID_WIDTH-1:0] act_id;
 
     assert (beat_count > 0)
-    else $fatal(1, "%s read_burst called with no beats", vip_name);
+    else $fatal(1, "%s read_req_burst called with no beats", vip_name);
     assert (resp.size() >= beat_count)
-    else $fatal(1, "%s recv_rchn resp array too short", vip_name);
+    else $fatal(1, "%s read_req_burst resp array too short", vip_name);
 
     // Call the two channel APIs in sequence
       apply_pause();
