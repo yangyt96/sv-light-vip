@@ -37,8 +37,8 @@ axi4_full_vip/
 ├── tb/
 │   ├── axi4_full_mem_vip_tb.do
 │   ├── axi4_full_mem_vip_tb.sv           # Master + mem VIP testbench
-│   ├── axi4_full_slave_vip_tb.do
-│   ├── axi4_full_slave_vip_tb.sv     # Slave VIP testbench
+│   ├── axi4_full_vip_tb.do
+│   ├── axi4_full_vip_tb.sv     # Slave VIP testbench
 │   └── run.py
 ```
 
@@ -162,7 +162,7 @@ byte-addressed array, returns `OKAY` responses, preserves response IDs, handles
 | **Multiple Outstanding Reads** | 4 outstanding reads |
 | **Mixed Outstanding Read-Write** | Interleaved read/write outstanding |
 
-### `axi4_full_slave_vip_tb.sv` — Slave VIP tests
+### `axi4_full_vip_tb.sv` — Slave VIP tests
 
 | Test Case | Description |
 |-----------|-------------|

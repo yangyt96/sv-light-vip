@@ -4,7 +4,7 @@
 `include "axi4_full_if.sv"
 `include "axi4_full_vip_pkg.sv"
 
-module axi4_full_slave_vip_tb;
+module axi4_full_vip_tb;
 
   import axi4_full_vip_pkg::*;
 
