@@ -288,7 +288,7 @@ class Axi4FullMasterVIP #(
 
     $display("[%0t] %s RX R id=%0d", $time, vip_name, id);
 
-    vif.rready <= 0;
+    vif.rready <= 1'b0;
   endtask
 
   // Single-beat write transaction (request side)
