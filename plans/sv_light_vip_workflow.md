@@ -257,40 +257,43 @@
 
 4. **提交**:
   ```bash
-  git commit -m "<type>(<scope>): <description>
+  git commit -m "[<type>](<scope>): <short description>
 
-  - <change 1>
-  - <change 2>
-  ...
-
-  All N/N tests passed, lint and format clean."
+  - <bullet point 1>
+  - <bullet point 2>
+  ..."
   ```
+
+**Commit message 规范**:
+
+| 要求 | 说明 |
+|------|------|
+| 语言 | **英语** |
+| 格式 | `[<type>](<scope>): <description>` |
+| 首行 | 小写开头，不加句号，不超过 72 字符 |
+| 正文 | 可选，bullet points 用 `- ` 开头，描述具体改动 |
+
+**类型 (`type`)**:
+
+| 类型 | 说明 | 示例 |
+|------|------|------|
+| `feat` | 新功能 | `[feat](spi): add quad-SPI support` |
+| `enh` | 增强/改进 | `[enh](api): normalize API naming convention across all VIPs` |
+| `fix` | 修复 | `[fix](apb): use non-blocking assignments for vif signals` |
+| `doc` | 文档 | `[doc](repo_analysis): update 4.4 lint analysis conclusion` |
+| `refactor` | 重构 | `[refactor](axi4_lite): move signal drive outside handshake loop` |
+| `test` | 测试 | `[test](i2c): add bus conflict test` |
+| `style` | 代码风格 | `[style](spi): fix indentation` |
+| `format` | 格式化 | `[format]: run verible-verilog-format` |
+
+**范围 (`scope`)** — 可选，表示修改的模块或文件：
+- VIP 名：`apb`、`spi`、`i2c`、`uart`、`i2s`、`axi4_lite`、`axi4_full`、`axi4_stream`
+- 通用：`api`、`docs`、`ci`、`workflow`、`repo_analysis`
 
 **不要使用**:
 - `git add -A` — 添加所有文件（包括无关文件）
 - `git add .` — 同上
 - `git add -u` — 只更新已跟踪文件，但可能包含无关修改
-
-**Commit message 格式** (参考项目 git log):
-```
-[type] short description
-
-- bullet point details
-...
-```
-
-| 类型 | 说明 |
-|------|------|
-| `[feat]` | 新功能 |
-| `[enh]` | 增强/改进 |
-| `[fix]` | 修复 |
-| `[docs]` | 文档 |
-| `[refactor]` | 重构 |
-| `[test]` | 测试 |
-| `[style]` | 代码风格 |
-| `[format]` | 格式化 |
-
-**Commit message 语言**: 使用英语（根据用户要求）
 
 **提交后**: 主动询问用户"下一步做什么"，列出可选方向供用户选择。
 
