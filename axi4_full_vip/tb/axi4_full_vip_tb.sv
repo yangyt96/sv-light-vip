@@ -302,7 +302,7 @@ module axi4_full_vip_tb;
           strb[0] = 4'hF;
           for(int i = 0; i < 4; i++) begin
             data[0] = 32'h11111111 * (i+1);
-            master_vip.send_wchn(.data(data), .strb(strb));
+            master_vip.send_wchn(.data(data[0]), .strb(strb[0]), .last(0));
           end
         end
 
@@ -313,11 +313,11 @@ module axi4_full_vip_tb;
           master_vip.recv_bchn(.resp(resp[3]));
         end
       join
-      
+
       for (int i = 0; i < 4; i++) begin
         assert(resp[i] == 2'b00) else $error("Outstanding write response mismatch id=%0d resp=%0h", i, resp[i]);
       end
-      
+
       check_single_read(32'h6000, 32'h11111111, 4'd0);
       check_single_read(32'h6004, 32'h22222222, 4'd1);
       check_single_read(32'h6008, 32'h33333333, 4'd2);
@@ -333,7 +333,7 @@ module axi4_full_vip_tb;
       data = new[1];
       resp = new[1];
       $display("\n--- Test 8: Multiple Outstanding Reads ---");
-      
+
       master_vip.write(.addr(32'h6000), .data(32'h11111111), .resp(resp[0]));
       master_vip.write(.addr(32'h6004), .data(32'h22222222), .resp(resp[0]));
       master_vip.write(.addr(32'h6008), .data(32'h33333333), .resp(resp[0]));
@@ -361,7 +361,7 @@ module axi4_full_vip_tb;
       for (int i = 0; i < 4; i++) begin
         assert(rd_resp[i] == 2'b00) else $error("Outstanding read response mismatch id=%0d resp=%0h", i, rd_resp[i]);
       end
-      
+
       assert(rd_data[0] == 32'h11111111) else $error("Outstanding read data mismatch id=0 exp=%h got=%h", 32'h11111111, rd_data[0]);
       assert(rd_data[1] == 32'h22222222) else $error("Outstanding read data mismatch id=1 exp=%h got=%h", 32'h22222222, rd_data[1]);
       assert(rd_data[2] == 32'h33333333) else $error("Outstanding read data mismatch id=2 exp=%h got=%h", 32'h33333333, rd_data[2]);
@@ -388,15 +388,15 @@ module axi4_full_vip_tb;
         master_vip.write(.addr(32'h7004), .data(32'h11223344), .strb(4'hF), .id(4'd2), .resp(wr_resp[1]));
         master_vip.read(.addr(32'h6004), .data(rd_data[1]), .resp(rd_resp[1]), .id(4'd3));
       join
-      
+
       for (int i = 0; i < 2; i++) begin
         assert(wr_resp[i] == 2'b00) else $error("Mixed outstanding write response mismatch id=%0d resp=%0h", i, wr_resp[i]);
         assert(rd_resp[i] == 2'b00) else $error("Mixed outstanding read response mismatch id=%0d resp=%0h", i, rd_resp[i]);
       end
-      
+
       assert(rd_data[0] == 32'h11111111) else $error("Mixed outstanding read data mismatch id=1 exp=%h got=%h", 32'h11111111, rd_data[0]);
       assert(rd_data[1] == 32'h22222222) else $error("Mixed outstanding read data mismatch id=3 exp=%h got=%h", 32'h22222222, rd_data[1]);
-      
+
       check_single_read(32'h7000, 32'hAABBCCDD, 4'd0);
       check_single_read(32'h7004, 32'h11223344, 4'd2);
     end

@@ -197,35 +197,24 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Write Data Channel - Send write data phase
-  task send_wchn(input logic [DATA_WIDTH-1:0] data[], input logic [STRB_WIDTH-1:0] strb[]);
+  task send_wchn(input logic [DATA_WIDTH-1:0] data, input logic [STRB_WIDTH-1:0] strb, input logic last);
     int unsigned beat_count;
     int unsigned beat_idx;
     int unsigned cycles;
 
-    beat_count = data.size();
-    assert (beat_count > 0)
-    else $fatal(1, "%s send_wchn called with no data beats", vip_name);
-    assert (strb.size() >= beat_count)
-    else $fatal(1, "%s send_wchn strb array too short", vip_name);
-
-    apply_pause();
-
-
-    for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
-      cycles = 0;
-      do begin
-        cycles++;
-        vif.wdata  <= data[beat_idx];
-        vif.wstrb  <= strb[beat_idx];
-        vif.wlast  <= (beat_idx == (beat_count - 1));
-        vif.wuser  <= '0;
-        vif.wvalid <= 1'b1;
-        @(posedge vif.aclk);
-        if (cycles >= timeout_cycles) begin
-          $fatal(1, "%s timed out waiting for AXI4 write data handshakes", vip_name);
-        end
-      end while (!vif.wready);
-    end
+    cycles = 0;
+    do begin
+      cycles++;
+      vif.wdata  <= data;
+      vif.wstrb  <= strb;
+      vif.wlast  <= last;
+      vif.wuser  <= '0;
+      vif.wvalid <= 1'b1;
+      @(posedge vif.aclk);
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for AXI4 write data handshakes", vip_name);
+      end
+    end while (!vif.wready);
 
     vif.wvalid <= 1'b0;
 
@@ -261,6 +250,7 @@ class Axi4FullMasterVIP #(
                    input logic [BURST_WIDTH-1:0] burst = 2'b01,
                    input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
     int unsigned beat_count;
+    int unsigned beat_idx;
 
     beat_count = data.size();
     assert (beat_count > 0)
@@ -270,7 +260,9 @@ class Axi4FullMasterVIP #(
 
     // Call the three channel APIs in sequence
     send_awchn(addr, beat_count, id, size, burst, prot);
-    send_wchn(data, strb);
+    for(beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
+      send_wchn(data[beat_idx], strb[beat_idx], beat_idx == (beat_count - 1));
+    end
     recv_bchn(resp);
   endtask
 
