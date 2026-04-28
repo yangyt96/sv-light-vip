@@ -156,7 +156,12 @@ class Axi4FullSlaveVIP #(
   task automatic recv_awchn(output logic [ADDR_WIDTH-1:0] addr, output logic [ID_WIDTH-1:0] id,
                             output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
                             output logic [BURST_WIDTH-1:0] burst,
-                            output logic [PROT_WIDTH-1:0] prot);
+                            output logic [PROT_WIDTH-1:0] prot,
+                            output logic [CACHE_WIDTH-1:0] cache,
+                            output logic [LOCK_WIDTH-1:0] lock,
+                            output logic [QOS_WIDTH-1:0] qos,
+                            output logic [REGION_WIDTH-1:0] region,
+                            output logic [AWUSER_WIDTH-1:0] awuser);
     int unsigned cycles;
 
     wait_reset_release();
@@ -175,21 +180,26 @@ class Axi4FullSlaveVIP #(
     // Capture address AFTER handshake. Master uses NBA to drive address
     // signals, which take effect in the NBA region. By waiting for awvalid
     // (which is also NBA-driven), we ensure all address signals are stable.
-    addr  = vif.awaddr;
-    id    = vif.awid;
-    len   = vif.awlen;
-    size  = vif.awsize;
-    burst = vif.awburst;
-    prot  = vif.awprot;
+    addr   = vif.awaddr;
+    id     = vif.awid;
+    len    = vif.awlen;
+    size   = vif.awsize;
+    burst  = vif.awburst;
+    prot   = vif.awprot;
+    cache  = vif.awcache;
+    lock   = vif.awlock;
+    qos    = vif.awqos;
+    region = vif.awregion;
+    awuser = vif.awuser;
 
-    $display("[%0t] %s RX AW addr=%h id=%0d len=%0d size=%0d burst=%0d", $time, vip_name, addr, id,
-             len, size, burst);
+    $display("[%0t] %s RX AW addr=%h id=%0d len=%0d size=%0d burst=%0d cache=%h lock=%h qos=%h region=%h",
+             $time, vip_name, addr, id, len, size, burst, cache, lock, qos, region);
 
     vif.awready <= 1'b0;
   endtask
 
   task automatic recv_wchn(output logic [DATA_WIDTH-1:0] data, output logic [STRB_WIDTH-1:0] strb,
-                           output logic last);
+                           output logic last, output logic [WUSER_WIDTH-1:0] wuser);
     int unsigned cycles;
 
     vif.wready <= 1'b1;
@@ -202,11 +212,12 @@ class Axi4FullSlaveVIP #(
       end
     end while (!vif.wvalid);
 
-    data = vif.wdata;
-    strb = vif.wstrb;
-    last = vif.wlast;
+    data  = vif.wdata;
+    strb  = vif.wstrb;
+    last  = vif.wlast;
+    wuser = vif.wuser;
 
-    $display("[%0t] %s RX W data=%h strb=%h last=%b", $time, vip_name, data, strb, last);
+    $display("[%0t] %s RX W data=%h strb=%h last=%b wuser=%h", $time, vip_name, data, strb, last, wuser);
 
     vif.wready <= 1'b0;
   endtask
@@ -248,13 +259,19 @@ class Axi4FullSlaveVIP #(
     logic [SIZE_WIDTH-1:0] size;
     logic [BURST_WIDTH-1:0] burst;
     logic [PROT_WIDTH-1:0] prot;
+    logic [CACHE_WIDTH-1:0] cache;
+    logic [LOCK_WIDTH-1:0] lock;
+    logic [QOS_WIDTH-1:0] qos;
+    logic [REGION_WIDTH-1:0] region;
+    logic [AWUSER_WIDTH-1:0] awuser;
+    logic [WUSER_WIDTH-1:0] wuser;
     int unsigned beat_count;
     logic [DATA_WIDTH-1:0] beat_data;
     logic [STRB_WIDTH-1:0] beat_strb;
     bit beat_last;
 
     apply_stall();
-    recv_awchn(addr, id, len, size, burst, prot);
+    recv_awchn(addr, id, len, size, burst, prot, cache, lock, qos, region, awuser);
     beat_count = int'(len) + 1;
 
     data = new[beat_count];
@@ -262,7 +279,7 @@ class Axi4FullSlaveVIP #(
 
     for (int i = 0; i < beat_count; i++) begin
       apply_stall();
-      recv_wchn(beat_data, beat_strb, beat_last);
+      recv_wchn(beat_data, beat_strb, beat_last, wuser);
       data[i] = beat_data;
       strb[i] = beat_strb;
       if (beat_last && i < (beat_count - 1)) begin
@@ -291,14 +308,20 @@ class Axi4FullSlaveVIP #(
     logic [SIZE_WIDTH-1:0] size;
     logic [BURST_WIDTH-1:0] burst;
     logic [PROT_WIDTH-1:0] prot;
+    logic [CACHE_WIDTH-1:0] cache;
+    logic [LOCK_WIDTH-1:0] lock;
+    logic [QOS_WIDTH-1:0] qos;
+    logic [REGION_WIDTH-1:0] region;
+    logic [AWUSER_WIDTH-1:0] awuser;
     logic [DATA_WIDTH-1:0] beat_data;
     logic [STRB_WIDTH-1:0] beat_strb;
     bit beat_last;
+    logic [WUSER_WIDTH-1:0] wuser;
 
     apply_stall();
-    recv_awchn(addr, id, len, size, burst, prot);
+    recv_awchn(addr, id, len, size, burst, prot, cache, lock, qos, region, awuser);
     apply_stall();
-    recv_wchn(beat_data, beat_strb, beat_last);
+    recv_wchn(beat_data, beat_strb, beat_last, wuser);
     apply_stall();
     send_bchn(id, resp);
 
@@ -313,7 +336,12 @@ class Axi4FullSlaveVIP #(
   task automatic recv_archn(output logic [ADDR_WIDTH-1:0] addr, output logic [ID_WIDTH-1:0] id,
                             output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
                             output logic [BURST_WIDTH-1:0] burst,
-                            output logic [PROT_WIDTH-1:0] prot);
+                            output logic [PROT_WIDTH-1:0] prot,
+                            output logic [CACHE_WIDTH-1:0] cache,
+                            output logic [LOCK_WIDTH-1:0] lock,
+                            output logic [QOS_WIDTH-1:0] qos,
+                            output logic [REGION_WIDTH-1:0] region,
+                            output logic [ARUSER_WIDTH-1:0] aruser);
     int unsigned cycles;
 
     wait_reset_release();
@@ -332,15 +360,20 @@ class Axi4FullSlaveVIP #(
     // Capture address AFTER handshake. Master uses NBA to drive address
     // signals, which take effect in the NBA region. By waiting for arvalid
     // (which is also NBA-driven), we ensure all address signals are stable.
-    addr  = vif.araddr;
-    id    = vif.arid;
-    len   = vif.arlen;
-    size  = vif.arsize;
-    burst = vif.arburst;
-    prot  = vif.arprot;
+    addr   = vif.araddr;
+    id     = vif.arid;
+    len    = vif.arlen;
+    size   = vif.arsize;
+    burst  = vif.arburst;
+    prot   = vif.arprot;
+    cache  = vif.arcache;
+    lock   = vif.arlock;
+    qos    = vif.arqos;
+    region = vif.arregion;
+    aruser = vif.aruser;
 
-    $display("[%0t] %s RX AR addr=%h id=%0d len=%0d size=%0d burst=%0d", $time, vip_name, addr, id,
-             len, size, burst);
+    $display("[%0t] %s RX AR addr=%h id=%0d len=%0d size=%0d burst=%0d cache=%h lock=%h qos=%h region=%h",
+             $time, vip_name, addr, id, len, size, burst, cache, lock, qos, region);
 
     vif.arready <= 1'b0;
   endtask
@@ -384,10 +417,15 @@ class Axi4FullSlaveVIP #(
     logic [SIZE_WIDTH-1:0] size;
     logic [BURST_WIDTH-1:0] burst;
     logic [PROT_WIDTH-1:0] prot;
+    logic [CACHE_WIDTH-1:0] cache;
+    logic [LOCK_WIDTH-1:0] lock;
+    logic [QOS_WIDTH-1:0] qos;
+    logic [REGION_WIDTH-1:0] region;
+    logic [ARUSER_WIDTH-1:0] aruser;
     int unsigned beat_count;
 
     apply_stall();
-    recv_archn(addr, id, len, size, burst, prot);
+    recv_archn(addr, id, len, size, burst, prot, cache, lock, qos, region, aruser);
     beat_count = int'(len) + 1;
 
     assert (data.size() >= beat_count)
@@ -419,10 +457,15 @@ class Axi4FullSlaveVIP #(
     logic [SIZE_WIDTH-1:0] size;
     logic [BURST_WIDTH-1:0] burst;
     logic [PROT_WIDTH-1:0] prot;
+    logic [CACHE_WIDTH-1:0] cache;
+    logic [LOCK_WIDTH-1:0] lock;
+    logic [QOS_WIDTH-1:0] qos;
+    logic [REGION_WIDTH-1:0] region;
+    logic [ARUSER_WIDTH-1:0] aruser;
     int unsigned beat_count;
 
     apply_stall();
-    recv_archn(addr, id, len, size, burst, prot);
+    recv_archn(addr, id, len, size, burst, prot, cache, lock, qos, region, aruser);
     beat_count = int'(len) + 1;
 
     assert (beat_count == 1)
@@ -457,20 +500,26 @@ class Axi4FullSlaveVIP #(
                               ref logic [STRB_WIDTH-1:0] strb[], output logic [ID_WIDTH-1:0] id,
                               output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
                               output logic [BURST_WIDTH-1:0] burst,
-                              output logic [PROT_WIDTH-1:0] prot);
+                              output logic [PROT_WIDTH-1:0] prot,
+                              output logic [CACHE_WIDTH-1:0] cache,
+                              output logic [LOCK_WIDTH-1:0] lock,
+                              output logic [QOS_WIDTH-1:0] qos,
+                              output logic [REGION_WIDTH-1:0] region,
+                              output logic [AWUSER_WIDTH-1:0] awuser);
     int unsigned                  beat_count;
     logic        [DATA_WIDTH-1:0] beat_data;
     logic        [STRB_WIDTH-1:0] beat_strb;
     bit                           beat_last;
+    logic        [WUSER_WIDTH-1:0] wuser;
 
-    recv_awchn(addr, id, len, size, burst, prot);
+    recv_awchn(addr, id, len, size, burst, prot, cache, lock, qos, region, awuser);
     beat_count = int'(len) + 1;
 
     data = new[beat_count];
     strb = new[beat_count];
 
     for (int i = 0; i < beat_count; i++) begin
-      recv_wchn(beat_data, beat_strb, beat_last);
+      recv_wchn(beat_data, beat_strb, beat_last, wuser);
 
       data[i] = beat_data;
       strb[i] = beat_strb;
