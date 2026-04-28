@@ -139,13 +139,13 @@ Its API is symmetric with `Axi4FullMasterVIP`:
 #### Channel-level APIs
 
 ```systemverilog
-// Write channel
-slave.recv_awchn(addr, id, len, size, burst, prot);
-slave.recv_wchn(data, strb, last);
+// Write channel — recv_awchn captures all AW signals including optional sidebands
+slave.recv_awchn(addr, id, len, size, burst, prot, cache, lock, qos, region, awuser);
+slave.recv_wchn(data, strb, last, wuser);
 slave.send_bchn(id, resp);
 
-// Read channel
-slave.recv_archn(addr, id, len, size, burst, prot);
+// Read channel — recv_archn captures all AR signals including optional sidebands
+slave.recv_archn(addr, id, len, size, burst, prot, cache, lock, qos, region, aruser);
 slave.send_rchn(data, id, resp, last);  // single beat (scalar)
 ```
 

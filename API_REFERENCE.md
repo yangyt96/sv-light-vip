@@ -130,10 +130,10 @@ API is symmetric with Master VIP (`send_*` ↔ `recv_*`).
 
 | Method | Description |
 |--------|-------------|
-| `recv_awchn(addr, id, len, size, burst, prot)` | Receive write address |
-| `recv_wchn(data, strb, last)` | Receive single write data beat |
+| `recv_awchn(addr, id, len, size, burst, prot, cache, lock, qos, region, awuser)` | Receive write address (captures all AW signals) |
+| `recv_wchn(data, strb, last, wuser)` | Receive single write data beat |
 | `send_bchn(id, resp, buser)` | Send write response |
-| `recv_archn(addr, id, len, size, burst, prot)` | Receive read address |
+| `recv_archn(addr, id, len, size, burst, prot, cache, lock, qos, region, aruser)` | Receive read address (captures all AR signals) |
 | `send_rchn(data, id, resp, last, ruser)` | Send single read data beat (scalar) |
 
 #### High-level APIs (symmetric with Master)
