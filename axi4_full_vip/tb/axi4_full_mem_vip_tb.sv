@@ -515,6 +515,276 @@ module axi4_full_mem_vip_tb;
 
       $display("  Sideband signals verified: awuser/aruser/wuser driven correctly");
     end
+
+    // ============================================================
+    // New Enhanced Test Cases (Test 13-18)
+    // ============================================================
+
+    `TEST_CASE("Boundary Address Write-Read")
+    begin
+      logic [1:0] resp;
+      logic [DATA_WIDTH-1:0] rd_data;
+
+      $display("\n--- Test 13: Boundary Address Write-Read ---");
+
+      // Lower boundary
+      $display("  Writing to lower boundary 0x0000_0000");
+      master_vip.write_req_single(
+        .addr(32'h0000_0000), .data(32'hB0D1_CA5E), .strb(4'hF),
+        .id(4'd0), .resp(resp)
+      );
+      assert(resp == 2'b00) else $error("Lower boundary write resp mismatch resp=%0h", resp);
+
+      master_vip.read_req_single(.addr(32'h0000_0000), .data(rd_data), .resp(resp), .id(4'd0));
+      assert(rd_data == 32'hB0D1_CA5E)
+        else $error("Lower boundary read data mismatch exp=%h got=%h", 32'hB0D1_CA5E, rd_data);
+
+      // Upper boundary (last aligned word in 16KB memory)
+      $display("  Writing to upper boundary 0x0000_3FFC");
+      master_vip.write_req_single(
+        .addr(32'h0000_3FFC), .data(32'hCAF1_B0D1), .strb(4'hF),
+        .id(4'd1), .resp(resp)
+      );
+      assert(resp == 2'b00) else $error("Upper boundary write resp mismatch resp=%0h", resp);
+
+      master_vip.read_req_single(.addr(32'h0000_3FFC), .data(rd_data), .resp(resp), .id(4'd1));
+      assert(rd_data == 32'hCAF1_B0D1)
+        else $error("Upper boundary read data mismatch exp=%h got=%h", 32'hCAF1_B0D1, rd_data);
+
+      // Out-of-range (wraps within 16KB memory)
+      $display("  Writing to address 0x0000_4000 (wraps to 0x0000_0000)");
+      master_vip.write_req_single(
+        .addr(32'h0000_4000), .data(32'hDEAD_BEEF), .strb(4'hF),
+        .id(4'd2), .resp(resp)
+      );
+      assert(resp == 2'b00) else $error("Wrap address write resp mismatch resp=%0h", resp);
+
+      // Should have overwritten location 0x0000_0000 due to wrapping
+      master_vip.read_req_single(.addr(32'h0000_0000), .data(rd_data), .resp(resp), .id(4'd2));
+      assert(rd_data == 32'hDEAD_BEEF)
+        else $error("Wrap address read data mismatch exp=%h got=%h", 32'hDEAD_BEEF, rd_data);
+    end
+
+    `TEST_CASE("4KB Burst Boundary Crossing")
+    begin
+      logic [DATA_WIDTH-1:0] wr_data[];
+      logic [STRB_WIDTH-1:0] wr_strb[];
+      logic [DATA_WIDTH-1:0] rd_data[];
+      logic [1:0]            rd_resp[];
+      logic [1:0]            resp;
+
+      $display("\n--- Test 14: 4KB Burst Boundary Crossing (INCR, 8 beats, crossing 0x1000) ---");
+
+      // Start at 0x0FF0, 8 beats of 4 bytes each = 32 bytes
+      // This crosses the 4KB boundary at 0x1000
+      wr_data = new[8];
+      wr_strb = new[8];
+      rd_data = new[8];
+      rd_resp = new[8];
+      for (int i = 0; i < 8; i++) begin
+        wr_data[i] = 32'hBEEF_0000 + (i * 32'h0001_0101);
+        wr_strb[i] = '1;
+      end
+
+      $display("  Writing 8-beat INCR burst starting at 0x0FF0 (crosses 4KB boundary at 0x1000)");
+      master_vip.write_req_burst(
+        .addr(32'h0FF0), .data(wr_data), .strb(wr_strb),
+        .id(4'd0), .burst(2'b01), .resp(resp)
+      );
+      assert(resp == 2'b00) else $error("4KB boundary write resp mismatch resp=%0h", resp);
+
+      master_vip.read_req_burst(
+        .addr(32'h0FF0), .beat_count(8),
+        .data(rd_data), .resp(rd_resp), .id(4'd0), .burst(2'b01)
+      );
+
+      for (int i = 0; i < 8; i++) begin
+        assert(rd_resp[i] == 2'b00) else $error("4KB boundary read resp mismatch beat=%0d", i);
+        assert(rd_data[i] == wr_data[i])
+          else $error("4KB boundary data mismatch beat=%0d exp=%h got=%h", i, wr_data[i], rd_data[i]);
+      end
+
+      $display("  4KB boundary crossing verified: all %0d beats correct", 8);
+    end
+
+    `TEST_CASE("Reset During Transaction (Mem VIP)")
+    begin
+      logic [1:0]            resp;
+      logic [DATA_WIDTH-1:0] rd_data;
+      logic [ID_WIDTH-1:0]   rd_id;
+      logic                  rd_last;
+      logic                  rd_ruser;
+
+      $display("\n--- Test 15: Reset During Transaction (Mem VIP) ---");
+
+      // Write some data first
+      master_vip.write_req_single(
+        .addr(32'h2000), .data(32'hA5A5_A5A5), .strb(4'hF),
+        .id(4'd0), .resp(resp)
+      );
+      assert(resp == 2'b00) else $error("Pre-reset write resp mismatch resp=%0h", resp);
+
+      // Assert reset during an active transaction
+      $display("  Asserting reset during active transaction...");
+      fork
+        begin
+          master_vip.send_awchn(.addr(32'h3000), .beat_count(1), .id(4'd1));
+          master_vip.send_wchn(.data(32'h1234_5678), .strb(4'hF), .last(1'b1));
+          // B response may or may not complete before reset
+          master_vip.recv_bchn(.resp(resp), .id(rd_id), .user(rd_ruser));
+        end
+        begin
+          repeat (3) @(posedge clk);
+          rstn = 1'b0;
+          repeat (10) @(posedge clk);
+          rstn = 1'b1;
+          repeat (5) @(posedge clk);
+        end
+      join
+
+      $display("  Reset completed, verifying data retention and state machine recovery...");
+
+      // Verify previously written data is retained (Mem VIP does NOT zero memory on reset)
+      master_vip.read_req_single(.addr(32'h2000), .data(rd_data), .resp(resp), .id(4'd0));
+      assert(rd_data == 32'hA5A5_A5A5)
+        else $error("Data retention after reset: exp=%h got=%h", 32'hA5A5_A5A5, rd_data);
+
+      // Verify new transactions work after reset
+      master_vip.write_req_single(
+        .addr(32'h4000), .data(32'hC0DE_CAFE), .strb(4'hF),
+        .id(4'd2), .resp(resp)
+      );
+      assert(resp == 2'b00) else $error("Post-reset write resp mismatch resp=%0h", resp);
+
+      master_vip.read_req_single(.addr(32'h4000), .data(rd_data), .resp(resp), .id(4'd2));
+      assert(rd_data == 32'hC0DE_CAFE)
+        else $error("Post-reset read data mismatch exp=%h got=%h", 32'hC0DE_CAFE, rd_data);
+
+      $display("  Data retention and state machine recovery verified");
+    end
+
+    `TEST_CASE("Random Burst Length and Size (Mem VIP)")
+    begin
+      logic [DATA_WIDTH-1:0] wr_data[];
+      logic [STRB_WIDTH-1:0] wr_strb[];
+      logic [DATA_WIDTH-1:0] rd_data[];
+      logic [1:0]            rd_resp[];
+      logic [1:0]            resp;
+      int unsigned           beat_count;
+      int unsigned           burst_type;
+
+      $display("\n--- Test 16: Random Burst Length and Size (Mem VIP, 3 iterations) ---");
+
+      for (int iter = 0; iter < 3; iter++) begin
+        beat_count = $urandom_range(1, 8);
+        burst_type = $urandom_range(0, 2);
+        if (burst_type == 2) begin
+          if (beat_count > 4) beat_count = 4;
+          if (beat_count < 2) beat_count = 2;
+          beat_count = 2**($clog2(beat_count));
+        end
+
+        $display("  Iter %0d: beat_count=%0d burst=%0d addr=0x%0h",
+                 iter, beat_count, burst_type, 32'h5000 + iter*32'h1000);
+
+        wr_data = new[beat_count];
+        wr_strb = new[beat_count];
+        rd_data = new[beat_count];
+        rd_resp = new[beat_count];
+        for (int i = 0; i < beat_count; i++) begin
+          wr_data[i] = 32'hA000_0000 + (iter * 32'h1000_0000) + (i * 32'h0101_0101);
+          wr_strb[i] = '1;
+        end
+
+        master_vip.write_req_burst(
+          .addr(32'h5000 + iter*32'h1000), .data(wr_data), .strb(wr_strb),
+          .id(4'(iter)), .burst(2'(burst_type)), .resp(resp)
+        );
+        assert(resp == 2'b00)
+          else $error("Random burst write resp mismatch iter=%0d resp=%0h", iter, resp);
+
+        master_vip.read_req_burst(
+          .addr(32'h5000 + iter*32'h1000), .beat_count(beat_count),
+          .data(rd_data), .resp(rd_resp), .id(4'(iter)), .burst(2'(burst_type))
+        );
+
+        for (int i = 0; i < beat_count; i++) begin
+          assert(rd_resp[i] == 2'b00)
+            else $error("Random burst read resp mismatch iter=%0d beat=%0d", iter, i);
+          assert(rd_data[i] == wr_data[i])
+            else $error("Random burst data mismatch iter=%0d beat=%0d exp=%h got=%h",
+                       iter, i, wr_data[i], rd_data[i]);
+        end
+      end
+    end
+
+    `TEST_CASE("Consecutive Transactions Without Pause (Mem VIP)")
+    begin
+      logic [1:0]            resp;
+      logic [DATA_WIDTH-1:0] rd_data;
+
+      $display("\n--- Test 17: Consecutive Transactions Without Pause (Mem VIP, 8 writes + 8 reads) ---");
+
+      // 8 rapid-fire writes
+      for (int i = 0; i < 8; i++) begin
+        master_vip.write_req_single(
+          .addr(32'h7000 + i*4), .data(32'hC0DE_CAFE + i), .strb(4'hF),
+          .id(i[3:0]), .resp(resp)
+        );
+        assert(resp == 2'b00) else $error("Consecutive write %0d resp mismatch resp=%0h", i, resp);
+      end
+
+      // 8 rapid-fire reads
+      for (int i = 0; i < 8; i++) begin
+        master_vip.read_req_single(.addr(32'h7000 + i*4), .data(rd_data), .resp(resp), .id(i[3:0]));
+        assert(rd_data == (32'hC0DE_CAFE + i))
+          else $error("Consecutive read %0d data mismatch exp=%h got=%h", i, 32'hC0DE_CAFE + i, rd_data);
+      end
+
+      $display("  All 8 writes and 8 reads completed successfully");
+    end
+
+    `TEST_CASE("WRAP Burst at Memory Boundary")
+    begin
+      logic [DATA_WIDTH-1:0] wr_data[];
+      logic [STRB_WIDTH-1:0] wr_strb[];
+      logic [DATA_WIDTH-1:0] rd_data[];
+      logic [1:0]            rd_resp[];
+      logic [1:0]            resp;
+
+      $display("\n--- Test 18: WRAP Burst at Memory Boundary (4 beats, wraps near 0x3FF0) ---");
+
+      // WRAP burst: 4 beats, size=2 (4 bytes), wrap boundary = 4*4 = 16 bytes
+      // Start at 0x3FF8 (near end of 16KB memory), wraps at 0x4000 → 0x3FF0
+      wr_data = new[4];
+      wr_strb = new[4];
+      rd_data = new[4];
+      rd_resp = new[4];
+      for (int i = 0; i < 4; i++) begin
+        wr_data[i] = 32'hF000_0000 + (i * 32'h0101_0101);
+        wr_strb[i] = '1;
+      end
+
+      $display("  Writing 4-beat WRAP burst at 0x3FF8 (wraps within 16-byte boundary)");
+      master_vip.write_req_burst(
+        .addr(32'h3FF8), .data(wr_data), .strb(wr_strb),
+        .id(4'd0), .burst(2'b10), .resp(resp)
+      );
+      assert(resp == 2'b00) else $error("WRAP boundary write resp mismatch resp=%0h", resp);
+
+      master_vip.read_req_burst(
+        .addr(32'h3FF8), .beat_count(4),
+        .data(rd_data), .resp(rd_resp), .id(4'd0), .burst(2'b10)
+      );
+
+      for (int i = 0; i < 4; i++) begin
+        assert(rd_resp[i] == 2'b00) else $error("WRAP boundary read resp mismatch beat=%0d", i);
+        assert(rd_data[i] == wr_data[i])
+          else $error("WRAP boundary data mismatch beat=%0d exp=%h got=%h", i, wr_data[i], rd_data[i]);
+      end
+
+      $display("  WRAP burst at memory boundary verified");
+    end
   end
 
 endmodule
