@@ -351,7 +351,7 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 
 ## 七、完成状态汇总
 
-### ✅ 已完成（38 项）
+### ✅ 已完成（44 项）
 
 - [x] **2.3** — 完善 `.gitignore`（低）
 - [x] **2.4** — 统一代码风格（中）
@@ -391,6 +391,12 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 - [x] **G6** — I2C Master 添加 `enable_pause_generator` / `apply_pause()`（中）
 - [x] **G7** — I2C Slave `wait_start()` 分离 `wait_reset_release()`（中）
 - [x] **G8** — I2S RX 添加 `wait_reset_release()`（中）
+- [x] **H1** — SPI Master `send_recv()` 末尾调用 `clear_outputs()`（低）
+- [x] **H2** — SPI Slave `send_recv()` 末尾调用 `clear_outputs()`（低）
+- [x] **H3** — I2C Master 事务末尾调用 `clear_outputs()`（低）
+- [x] **H4** — I2C Slave 事务末尾调用 `clear_outputs()`（低）
+- [x] **H5** — UART TX `send_frame()` 末尾调用 `clear_outputs()`（低）
+- [x] **H6** — I2S TX `send_frame()` 末尾调用 `clear_outputs()`（低）
 
 ### 📋 待完成（2 项，按优先级排序）
 
@@ -401,11 +407,9 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 
 以下改进建议在 Phase 7 中识别但未实现，按功能类别分组：
 
-#### F 组：为其他 VIP 添加 `idle()` 方法（低优先级）
+#### F 组：为其他 VIP 添加 `idle()` 方法（低优先级）❌ 已关闭
 
-- [ ] **F1** — AXI4-Lite Slave 添加 `idle()`：已有 `clear_outputs()`，缺少 `idle()` 方法
-- [ ] **F2** — AXI4-Full Master 添加 `idle()`：已有 `clear_outputs()`，缺少 `idle()` 方法
-- [ ] **F3** — AXI4-Full Slave 添加 `idle()`：已有 `clear_outputs()`，缺少 `idle()` 方法
+`idle()` 与 `clear_outputs()` 功能完全相同，无需重复添加。AXI4-Lite/Full/Stream VIP 已有 `clear_outputs()`，且其通道级方法已通过 valid/ready 握手处理信号清除，不需要在事务末尾额外调用。
 - [ ] **F4** — AXI4-Stream Master 添加 `idle()`：已有 `clear_outputs()`，缺少 `idle()` 方法
 - [ ] **F5** — AXI4-Stream Slave 添加 `idle()`：已有 `clear_outputs()`，缺少 `idle()` 方法
 
@@ -438,23 +442,23 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 - `make test-axi4_full_mem_vip` — 8/8 通过
 - **总计：109 测试用例全部通过**
 
-#### H 组：事务方法末尾调用 `idle()`（低优先级）
+#### H 组：事务方法末尾调用 `clear_outputs()`（低优先级） ✅ 已完成
 
-- [ ] **H1** — SPI Master `transfer()` 末尾调用 `idle()`：末尾手动清零 `cs_n/mosi`
-- [ ] **H2** — SPI Slave `transfer()` 末尾调用 `idle()`：末尾手动清零 `miso`
-- [ ] **H3** — I2C Master 事务末尾调用 `idle()`：无显式清理
-- [ ] **H4** — I2C Slave 事务末尾调用 `idle()`：无显式清理
-- [ ] **H5** — UART TX `transmit()` 末尾调用 `idle()`：无显式清理
-- [ ] **H6** — I2S TX `transmit()` 末尾调用 `idle()`：末尾手动清零 `ws/sd`
-- [ ] **H7** — AXI4-Lite Master/Slave 事务末尾调用 `idle()`：无 `idle()` 方法
-- [ ] **H8** — AXI4-Full Master/Slave 事务末尾调用 `idle()`：无 `idle()` 方法
-- [ ] **H9** — AXI4-Stream Master/Slave 事务末尾调用 `idle()`：无 `idle()` 方法
+- [x] **H1** — SPI Master `send_recv()` 末尾调用 `clear_outputs()` 替代手动清零 `cs_n/mosi`
+- [x] **H2** — SPI Slave `send_recv()` 末尾调用 `clear_outputs()` 替代手动清零 `miso`
+- [x] **H3** — I2C Master `send_byte/recv_byte/send_bytes/recv_bytes` 末尾调用 `clear_outputs()`
+- [x] **H4** — I2C Slave `recv_byte/send_byte/recv_bytes/send_bytes` 末尾调用 `clear_outputs()`
+- [x] **H5** — UART TX `send_frame()` 末尾调用 `clear_outputs()`
+- [x] **H6** — I2S TX `send_frame()` 末尾调用 `clear_outputs()` 替代手动清零 `ws/sd`
+- [ ] **H7** — AXI4-Lite Master/Slave：不需要，通道级方法已处理信号清除
+- [ ] **H8** — AXI4-Full Master/Slave：不需要，通道级方法已处理信号清除
+- [ ] **H9** — AXI4-Stream Master/Slave：不需要，通道级方法已处理信号清除
 
 ---
 
 ## 八、总结
 
-经过全面重新审视，这个 repo 的整体质量良好，代码风格统一，测试覆盖合理。已完成 **38 项**改进，剩余 **2 项**待完成（均为低优先级）。`clean.py` 已被移除，其功能由 `make clean` 替代。
+经过全面重新审视，这个 repo 的整体质量良好，代码风格统一，测试覆盖合理。已完成 **44 项**改进，剩余 **2 项**待完成（均为低优先级）。`clean.py` 已被移除，其功能由 `make clean` 替代。
 
 **Phase 7 新增改进（6 项）**：
 1. **功能 C**：AXI4-Lite Master 信号驱动优化（5.15）
