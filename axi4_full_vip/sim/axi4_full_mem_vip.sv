@@ -2,6 +2,10 @@
 // Hardware memory module (NOT a software class).
 // Must be `included and instantiated directly in the testbench.
 // Simple single-outstanding AXI4 slave with byte-addressed storage and burst support.
+//
+// Behavior:
+//   - Address within MEM_BYTES range: normal read/write with OKAY response
+//   - Address outside MEM_BYTES range: returns DECERR (2'b11) response
 
 `timescale 1ns / 1ps
 
@@ -79,11 +83,12 @@ module axi4_full_mem_vip #(
 );
 
   localparam logic [1:0] AXI_RESP_OKAY = 2'b00;
+  localparam logic [1:0] AXI_RESP_DECERR = 2'b11;
   localparam logic [1:0] AXI_BURST_FIXED = 2'b00;
   localparam logic [1:0] AXI_BURST_INCR = 2'b01;
   localparam logic [1:0] AXI_BURST_WRAP = 2'b10;
 
-  byte unsigned                   mem            [MEM_BYTES];
+  byte unsigned                   mem                                      [MEM_BYTES];
 
   logic         [   ID_WIDTH-1:0] wr_id;
   logic         [ ADDR_WIDTH-1:0] wr_addr;
@@ -92,6 +97,7 @@ module axi4_full_mem_vip #(
   int unsigned                    wr_beats_total;
   int unsigned                    wr_beat_count;
   bit                             wr_active;
+  bit                             wr_decerr;  // DECERR flag for write path
 
   logic         [   ID_WIDTH-1:0] rd_id;
   logic         [ ADDR_WIDTH-1:0] rd_addr;
@@ -100,8 +106,14 @@ module axi4_full_mem_vip #(
   int unsigned                    rd_beats_total;
   int unsigned                    rd_beat_count;
   bit                             rd_active;
+  bit                             rd_decerr;  // DECERR flag for read path
 
   logic         [ ADDR_WIDTH-1:0] next_addr;
+
+  // Address range check
+  function automatic logic is_valid_addr(input logic [ADDR_WIDTH-1:0] addr);
+    return (addr < MEM_BYTES);
+  endfunction
 
   function automatic int unsigned beat_bytes(input logic [SIZE_WIDTH-1:0] size);
     int unsigned bytes;
@@ -175,8 +187,6 @@ module axi4_full_mem_vip #(
 
   always_ff @(posedge aclk or negedge aresetn) begin
     if (!aresetn) begin
-      // s_axi_awready  <= 1'b0;
-      // s_axi_wready   <= 1'b0;
       s_axi_bid      <= '0;
       s_axi_bresp    <= AXI_RESP_OKAY;
       s_axi_buser    <= '0;
@@ -188,6 +198,7 @@ module axi4_full_mem_vip #(
       wr_beats_total <= 0;
       wr_beat_count  <= 0;
       wr_active      <= 1'b0;
+      wr_decerr      <= 1'b0;
     end else begin
 
       if (s_axi_awvalid && s_axi_awready) begin
@@ -198,14 +209,18 @@ module axi4_full_mem_vip #(
         wr_beats_total <= int'(s_axi_awlen) + 1;
         wr_beat_count  <= 0;
         wr_active      <= 1'b1;
+        wr_decerr      <= ~is_valid_addr(s_axi_awaddr);
       end
 
       if (s_axi_wvalid && s_axi_wready) begin
-        write_word(wr_addr, s_axi_wdata, s_axi_wstrb);
+        // Only write to memory if address is valid
+        if (!wr_decerr) begin
+          write_word(wr_addr, s_axi_wdata, s_axi_wstrb);
+        end
 
         if ((wr_beat_count == (wr_beats_total - 1)) || s_axi_wlast) begin
           s_axi_bid    <= wr_id;
-          s_axi_bresp  <= AXI_RESP_OKAY;
+          s_axi_bresp  <= wr_decerr ? AXI_RESP_DECERR : AXI_RESP_OKAY;
           s_axi_buser  <= '0;
           s_axi_bvalid <= 1'b1;
           wr_active    <= 1'b0;
@@ -239,6 +254,7 @@ module axi4_full_mem_vip #(
       rd_beats_total <= 0;
       rd_beat_count  <= 0;
       rd_active      <= 1'b0;
+      rd_decerr      <= 1'b0;
     end else begin
 
       if (s_axi_arvalid && s_axi_arready) begin
@@ -249,10 +265,11 @@ module axi4_full_mem_vip #(
         rd_beats_total <= int'(s_axi_arlen) + 1;
         rd_beat_count  <= 0;
         rd_active      <= 1'b1;
+        rd_decerr      <= ~is_valid_addr(s_axi_araddr);
 
         s_axi_rid      <= s_axi_arid;
-        s_axi_rdata    <= read_word(s_axi_araddr);
-        s_axi_rresp    <= AXI_RESP_OKAY;
+        s_axi_rdata    <= is_valid_addr(s_axi_araddr) ? read_word(s_axi_araddr) : '0;
+        s_axi_rresp    <= is_valid_addr(s_axi_araddr) ? AXI_RESP_OKAY : AXI_RESP_DECERR;
         s_axi_ruser    <= '0;
         s_axi_rlast    <= (s_axi_arlen == '0);
         s_axi_rvalid   <= 1'b1;
@@ -265,8 +282,8 @@ module axi4_full_mem_vip #(
           rd_addr       <= next_addr;
           rd_beat_count <= rd_beat_count + 1;
           s_axi_rid     <= rd_id;
-          s_axi_rdata   <= read_word(next_addr);
-          s_axi_rresp   <= AXI_RESP_OKAY;
+          s_axi_rdata   <= rd_decerr ? '0 : read_word(next_addr);
+          s_axi_rresp   <= rd_decerr ? AXI_RESP_DECERR : AXI_RESP_OKAY;
           s_axi_rlast   <= ((rd_beat_count + 1) == (rd_beats_total - 1));
           s_axi_rvalid  <= 1'b1;
         end

@@ -230,7 +230,7 @@ module axi4_full_mem_vip_tb;
       end
 
       master_vip.write_req_burst(
-        .addr(32'h4000),
+        .addr(32'h1000),
         .data(wr_data),
         .strb(wr_strb),
         .id(4'd5),
@@ -240,7 +240,7 @@ module axi4_full_mem_vip_tb;
       assert(resp == 2'b00) else $error("INCR burst write response mismatch resp=%0h", resp);
 
       master_vip.read_req_burst(
-        .addr(32'h4000),
+        .addr(32'h1000),
         .beat_count(4),
         .data(rd_data),
         .resp(rd_resp),
@@ -270,7 +270,7 @@ module axi4_full_mem_vip_tb;
       wr_data[2] = 32'h00CC0000; wr_strb[2] = 4'b0100;
 
       master_vip.write_req_burst(
-        .addr(32'h5000),
+        .addr(32'h0100),
         .data(wr_data),
         .strb(wr_strb),
         .id(4'd6),
@@ -280,7 +280,7 @@ module axi4_full_mem_vip_tb;
       assert(resp == 2'b00) else $error("FIXED burst write response mismatch resp=%0h", resp);
 
       expected_data = 32'h00CCBBAA;
-      check_single_read(32'h5000, expected_data, 4'd6);
+      check_single_read(32'h0100, expected_data, 4'd6);
     end
 
     `TEST_CASE("Multiple Outstanding Writes")
@@ -293,10 +293,10 @@ module axi4_full_mem_vip_tb;
       $display("\n--- Test 7: Multiple Outstanding Writes ---");
       fork
         begin
-          master_vip.send_awchn(.addr(32'h6000), .beat_count(1), .id(4'd0));
-          master_vip.send_awchn(.addr(32'h6004), .beat_count(1), .id(4'd1));
-          master_vip.send_awchn(.addr(32'h6008), .beat_count(1), .id(4'd2));
-          master_vip.send_awchn(.addr(32'h600C), .beat_count(1), .id(4'd3));
+          master_vip.send_awchn(.addr(32'h0200), .beat_count(1), .id(4'd0));
+          master_vip.send_awchn(.addr(32'h0204), .beat_count(1), .id(4'd1));
+          master_vip.send_awchn(.addr(32'h0208), .beat_count(1), .id(4'd2));
+          master_vip.send_awchn(.addr(32'h020C), .beat_count(1), .id(4'd3));
         end
 
         begin
@@ -320,10 +320,10 @@ module axi4_full_mem_vip_tb;
       end
 
       // Read back each address with the correct ID
-      check_single_read(32'h6000, 32'h11111111, 4'd0);
-      check_single_read(32'h6004, 32'h22222222, 4'd1);
-      check_single_read(32'h6008, 32'h33333333, 4'd2);
-      check_single_read(32'h600C, 32'h44444444, 4'd3);
+      check_single_read(32'h0200, 32'h11111111, 4'd0);
+      check_single_read(32'h0204, 32'h22222222, 4'd1);
+      check_single_read(32'h0208, 32'h33333333, 4'd2);
+      check_single_read(32'h020C, 32'h44444444, 4'd3);
     end
 
     `TEST_CASE("Multiple Outstanding Reads")
@@ -336,22 +336,22 @@ module axi4_full_mem_vip_tb;
       logic rd_ruser;
       $display("\n--- Test 8: Multiple Outstanding Reads ---");
 
-      master_vip.write_req_single(.addr(32'h6000), .data(32'h11111111), .resp(wr_resp[0]));
+      master_vip.write_req_single(.addr(32'h0300), .data(32'h11111111), .resp(wr_resp[0]));
       assert(wr_resp[0] == 2'b00) else $error("Write 0 response mismatch resp=%0h", wr_resp[0]);
-      master_vip.write_req_single(.addr(32'h6004), .data(32'h22222222), .resp(wr_resp[1]));
+      master_vip.write_req_single(.addr(32'h0304), .data(32'h22222222), .resp(wr_resp[1]));
       assert(wr_resp[1] == 2'b00) else $error("Write 1 response mismatch resp=%0h", wr_resp[1]);
-      master_vip.write_req_single(.addr(32'h6008), .data(32'h33333333), .resp(wr_resp[2]));
+      master_vip.write_req_single(.addr(32'h0308), .data(32'h33333333), .resp(wr_resp[2]));
       assert(wr_resp[2] == 2'b00) else $error("Write 2 response mismatch resp=%0h", wr_resp[2]);
-      master_vip.write_req_single(.addr(32'h600C), .data(32'h44444444), .resp(wr_resp[3]));
+      master_vip.write_req_single(.addr(32'h030C), .data(32'h44444444), .resp(wr_resp[3]));
       assert(wr_resp[3] == 2'b00) else $error("Write 3 response mismatch resp=%0h", wr_resp[3]);
 
       fork
 
         begin
-          master_vip.send_archn(.addr(32'h6000), .beat_count(1), .id(4'd0));
-          master_vip.send_archn(.addr(32'h6004), .beat_count(1), .id(4'd1));
-          master_vip.send_archn(.addr(32'h6008), .beat_count(1), .id(4'd2));
-          master_vip.send_archn(.addr(32'h600C), .beat_count(1), .id(4'd3));
+          master_vip.send_archn(.addr(32'h0300), .beat_count(1), .id(4'd0));
+          master_vip.send_archn(.addr(32'h0304), .beat_count(1), .id(4'd1));
+          master_vip.send_archn(.addr(32'h0308), .beat_count(1), .id(4'd2));
+          master_vip.send_archn(.addr(32'h030C), .beat_count(1), .id(4'd3));
         end
 
         begin
@@ -380,17 +380,17 @@ module axi4_full_mem_vip_tb;
       $display("\n--- Test 9: Mixed Outstanding Read-Write ---");
 
       // init mem
-      master_vip.write_req_single(.addr(32'h6000), .data(32'h11111111), .strb(4'hF), .id(4'd0), .resp(wr_resp[0]));
-      master_vip.write_req_single(.addr(32'h6004), .data(32'h22222222), .strb(4'hF), .id(4'd0), .resp(wr_resp[0]));
+      master_vip.write_req_single(.addr(32'h0400), .data(32'h11111111), .strb(4'hF), .id(4'd0), .resp(wr_resp[0]));
+      master_vip.write_req_single(.addr(32'h0404), .data(32'h22222222), .strb(4'hF), .id(4'd0), .resp(wr_resp[0]));
 
       // start test
       fork
-        master_vip.write_req_single(.addr(32'h7000), .data(32'hAABBCCDD), .strb(4'hF), .id(4'd0), .resp(wr_resp[0]));
-        master_vip.read_req_single(.addr(32'h6000), .data(rd_data[0]), .resp(rd_resp[0]), .id(4'd1));
+        master_vip.write_req_single(.addr(32'h0500), .data(32'hAABBCCDD), .strb(4'hF), .id(4'd0), .resp(wr_resp[0]));
+        master_vip.read_req_single(.addr(32'h0400), .data(rd_data[0]), .resp(rd_resp[0]), .id(4'd1));
       join
       fork
-        master_vip.write_req_single(.addr(32'h7004), .data(32'h11223344), .strb(4'hF), .id(4'd2), .resp(wr_resp[1]));
-        master_vip.read_req_single(.addr(32'h6004), .data(rd_data[1]), .resp(rd_resp[1]), .id(4'd3));
+        master_vip.write_req_single(.addr(32'h0504), .data(32'h11223344), .strb(4'hF), .id(4'd2), .resp(wr_resp[1]));
+        master_vip.read_req_single(.addr(32'h0404), .data(rd_data[1]), .resp(rd_resp[1]), .id(4'd3));
       join
 
       for (int i = 0; i < 2; i++) begin
@@ -401,8 +401,8 @@ module axi4_full_mem_vip_tb;
       assert(rd_data[0] == 32'h11111111) else $error("Mixed outstanding read data mismatch id=1 exp=%h got=%h", 32'h11111111, rd_data[0]);
       assert(rd_data[1] == 32'h22222222) else $error("Mixed outstanding read data mismatch id=3 exp=%h got=%h", 32'h22222222, rd_data[1]);
 
-      check_single_read(32'h7000, 32'hAABBCCDD, 4'd0);
-      check_single_read(32'h7004, 32'h11223344, 4'd2);
+      check_single_read(32'h0500, 32'hAABBCCDD, 4'd0);
+      check_single_read(32'h0504, 32'h11223344, 4'd2);
     end
 
     `TEST_CASE("WRAP Burst Write-Read")
@@ -427,7 +427,7 @@ module axi4_full_mem_vip_tb;
       end
 
       master_vip.write_req_burst(
-        .addr(32'h8008),  // offset 8 within 16-byte wrap region
+        .addr(32'h0608),  // offset 8 within 16-byte wrap region
         .data(wr_data),
         .strb(wr_strb),
         .id(4'd8),
@@ -438,7 +438,7 @@ module axi4_full_mem_vip_tb;
 
       // Read back with WRAP
       master_vip.read_req_burst(
-        .addr(32'h8008),
+        .addr(32'h0608),
         .beat_count(4),
         .data(rd_data),
         .resp(rd_resp),
@@ -465,17 +465,17 @@ module axi4_full_mem_vip_tb;
       $display("\n--- Test 11: Outstanding Reads with Different IDs ---");
 
       // Write two locations with different IDs
-      master_vip.write_req_single(.addr(32'h9000), .data(32'hAAAABBBB), .strb(4'hF), .id(4'd1), .resp(resp));
+      master_vip.write_req_single(.addr(32'h0700), .data(32'hAAAABBBB), .strb(4'hF), .id(4'd1), .resp(resp));
       assert(resp == 2'b00) else $error("Write id=1 response mismatch resp=%0h", resp);
-      master_vip.write_req_single(.addr(32'h9004), .data(32'hCCCCDDDD), .strb(4'hF), .id(4'd2), .resp(resp));
+      master_vip.write_req_single(.addr(32'h0704), .data(32'hCCCCDDDD), .strb(4'hF), .id(4'd2), .resp(resp));
       assert(resp == 2'b00) else $error("Write id=2 response mismatch resp=%0h", resp);
 
       // Issue two outstanding reads with different IDs
       // Note: mem_vip is single-outstanding, so responses come back in order
       fork
         begin
-          master_vip.send_archn(.addr(32'h9000), .beat_count(1), .id(4'd1));
-          master_vip.send_archn(.addr(32'h9004), .beat_count(1), .id(4'd2));
+          master_vip.send_archn(.addr(32'h0700), .beat_count(1), .id(4'd1));
+          master_vip.send_archn(.addr(32'h0704), .beat_count(1), .id(4'd2));
         end
         begin
           // mem_vip is single-outstanding, so responses are in-order
@@ -501,13 +501,13 @@ module axi4_full_mem_vip_tb;
       $display("\n--- Test 12: Sideband Signals (awuser/aruser/wuser) ---");
 
       // Write using channel-level APIs to verify awuser/wuser are driven
-      master_vip.send_awchn(.addr(32'hA000), .beat_count(1), .id(4'd0));
+      master_vip.send_awchn(.addr(32'h0800), .beat_count(1), .id(4'd0));
       master_vip.send_wchn(.data(32'hA5A5A5A5), .strb(4'hF), .last(1'b1));
       master_vip.recv_bchn(.resp(resp), .id(rd_id), .user(rd_ruser));
       assert(resp == 2'b00) else $error("Sideband write response mismatch resp=%0h", resp);
 
       // Read using channel-level APIs to verify aruser is driven
-      master_vip.send_archn(.addr(32'hA000), .beat_count(1), .id(4'd0));
+      master_vip.send_archn(.addr(32'h0800), .beat_count(1), .id(4'd0));
       master_vip.recv_rchn(.data(rd_data), .resp(resp), .id(rd_id), .last(rd_last), .user(rd_ruser));
       assert(resp == 2'b00) else $error("Sideband read response mismatch resp=%0h", resp);
       assert(rd_data == 32'hA5A5A5A5)
@@ -551,18 +551,14 @@ module axi4_full_mem_vip_tb;
       assert(rd_data == 32'hCAF1_B0D1)
         else $error("Upper boundary read data mismatch exp=%h got=%h", 32'hCAF1_B0D1, rd_data);
 
-      // Out-of-range (wraps within 16KB memory)
-      $display("  Writing to address 0x0000_4000 (wraps to 0x0000_0000)");
+      // Out-of-range (now returns DECERR instead of wrapping)
+      $display("  Writing to out-of-range address 0x0000_4000 (beyond 16KB)");
       master_vip.write_req_single(
         .addr(32'h0000_4000), .data(32'hDEAD_BEEF), .strb(4'hF),
         .id(4'd2), .resp(resp)
       );
-      assert(resp == 2'b00) else $error("Wrap address write resp mismatch resp=%0h", resp);
-
-      // Should have overwritten location 0x0000_0000 due to wrapping
-      master_vip.read_req_single(.addr(32'h0000_0000), .data(rd_data), .resp(resp), .id(4'd2));
-      assert(rd_data == 32'hDEAD_BEEF)
-        else $error("Wrap address read data mismatch exp=%h got=%h", 32'hDEAD_BEEF, rd_data);
+      assert(resp == 2'b11) else $error("Out-of-range write: expected DECERR(2'b11) got %0h", resp);
+      $display("  Out-of-range write returned DECERR as expected");
     end
 
     `TEST_CASE("4KB Burst Boundary Crossing")
@@ -651,12 +647,12 @@ module axi4_full_mem_vip_tb;
 
       // Verify new transactions work after reset
       master_vip.write_req_single(
-        .addr(32'h4000), .data(32'hC0DE_CAFE), .strb(4'hF),
+        .addr(32'h0900), .data(32'hC0DE_CAFE), .strb(4'hF),
         .id(4'd2), .resp(resp)
       );
       assert(resp == 2'b00) else $error("Post-reset write resp mismatch resp=%0h", resp);
 
-      master_vip.read_req_single(.addr(32'h4000), .data(rd_data), .resp(resp), .id(4'd2));
+      master_vip.read_req_single(.addr(32'h0900), .data(rd_data), .resp(resp), .id(4'd2));
       assert(rd_data == 32'hC0DE_CAFE)
         else $error("Post-reset read data mismatch exp=%h got=%h", 32'hC0DE_CAFE, rd_data);
 
@@ -685,7 +681,7 @@ module axi4_full_mem_vip_tb;
         end
 
         $display("  Iter %0d: beat_count=%0d burst=%0d addr=0x%0h",
-                 iter, beat_count, burst_type, 32'h5000 + iter*32'h1000);
+                 iter, beat_count, burst_type, 32'h0A00 + iter*32'h1000);
 
         wr_data = new[beat_count];
         wr_strb = new[beat_count];
@@ -697,14 +693,14 @@ module axi4_full_mem_vip_tb;
         end
 
         master_vip.write_req_burst(
-          .addr(32'h5000 + iter*32'h1000), .data(wr_data), .strb(wr_strb),
+          .addr(32'h0A00 + iter*32'h1000), .data(wr_data), .strb(wr_strb),
           .id(4'(iter)), .burst(2'(burst_type)), .resp(resp)
         );
         assert(resp == 2'b00)
           else $error("Random burst write resp mismatch iter=%0d resp=%0h", iter, resp);
 
         master_vip.read_req_burst(
-          .addr(32'h5000 + iter*32'h1000), .beat_count(beat_count),
+          .addr(32'h0A00 + iter*32'h1000), .beat_count(beat_count),
           .data(rd_data), .resp(rd_resp), .id(4'(iter)), .burst(2'(burst_type))
         );
 
@@ -728,7 +724,7 @@ module axi4_full_mem_vip_tb;
       // 8 rapid-fire writes
       for (int i = 0; i < 8; i++) begin
         master_vip.write_req_single(
-          .addr(32'h7000 + i*4), .data(32'hC0DE_CAFE + i), .strb(4'hF),
+          .addr(32'h0B00 + i*4), .data(32'hC0DE_CAFE + i), .strb(4'hF),
           .id(i[3:0]), .resp(resp)
         );
         assert(resp == 2'b00) else $error("Consecutive write %0d resp mismatch resp=%0h", i, resp);
@@ -736,7 +732,7 @@ module axi4_full_mem_vip_tb;
 
       // 8 rapid-fire reads
       for (int i = 0; i < 8; i++) begin
-        master_vip.read_req_single(.addr(32'h7000 + i*4), .data(rd_data), .resp(resp), .id(i[3:0]));
+        master_vip.read_req_single(.addr(32'h0B00 + i*4), .data(rd_data), .resp(resp), .id(i[3:0]));
         assert(rd_data == (32'hC0DE_CAFE + i))
           else $error("Consecutive read %0d data mismatch exp=%h got=%h", i, 32'hC0DE_CAFE + i, rd_data);
       end
@@ -784,6 +780,119 @@ module axi4_full_mem_vip_tb;
       end
 
       $display("  WRAP burst at memory boundary verified");
+    end
+
+    // ============================================================
+    // DECERR Test Cases (Test 19-22)
+    // ============================================================
+
+    `TEST_CASE("DECERR on Write to Invalid Address")
+    begin
+      logic [1:0]            resp;
+      logic [DATA_WIDTH-1:0] rd_data;
+      $display("\n--- Test 19: DECERR on Write to Invalid Address ---");
+
+      // Write to address beyond MEM_BYTES (16KB = 0x4000)
+      $display("  Writing to invalid address 0x0000_5000 (beyond 16KB)");
+      master_vip.write_req_single(
+        .addr(32'h0000_5000), .data(32'hDEAD_BEEF), .strb(4'hF),
+        .id(4'd0), .resp(resp)
+      );
+      assert(resp == 2'b11) else $error("DECERR write: expected DECERR(2'b11) got %0h", resp);
+      $display("  Write DECERR verified: resp=%0b", resp);
+
+      // Verify memory at wrapped address was NOT written
+      // 0x5000 % 0x4000 = 0x1000, so check 0x1000 is still zero
+      master_vip.read_req_single(.addr(32'h0000_1000), .data(rd_data), .resp(resp), .id(4'd1));
+      assert(resp == 2'b00) else $error("Post-DECERR read resp mismatch resp=%0b", resp);
+      assert(rd_data == '0) else $error("Post-DECERR read: expected 0 at 0x1000 got %h", rd_data);
+      $display("  Memory at wrapped address 0x1000 unchanged (data=%h)", rd_data);
+    end
+
+    `TEST_CASE("DECERR on Read to Invalid Address")
+    begin
+      logic [DATA_WIDTH-1:0] rd_data;
+      logic [1:0]            resp;
+      $display("\n--- Test 20: DECERR on Read to Invalid Address ---");
+
+      // Read from address beyond MEM_BYTES
+      $display("  Reading from invalid address 0x0000_5000 (beyond 16KB)");
+      master_vip.read_req_single(.addr(32'h0000_5000), .data(rd_data), .resp(resp), .id(4'd0));
+      assert(resp == 2'b11) else $error("DECERR read: expected DECERR(2'b11) got %0b", resp);
+      assert(rd_data == '0) else $error("DECERR read: expected data=0 got %h", rd_data);
+      $display("  Read DECERR verified: resp=%0b data=%h", resp, rd_data);
+    end
+
+    `TEST_CASE("DECERR on INCR Burst to Invalid Address")
+    begin
+      logic [DATA_WIDTH-1:0] wr_data[];
+      logic [STRB_WIDTH-1:0] wr_strb[];
+      logic [DATA_WIDTH-1:0] rd_data[];
+      logic [1:0]            rd_resp[];
+      logic [1:0]            resp;
+
+      $display("\n--- Test 21: DECERR on INCR Burst to Invalid Address ---");
+
+      // 4-beat INCR burst starting at invalid address
+      wr_data = new[4];
+      wr_strb = new[4];
+      rd_data = new[4];
+      rd_resp = new[4];
+      for (int i = 0; i < 4; i++) begin
+        wr_data[i] = 32'hA000_0000 + (i * 32'h0101_0101);
+        wr_strb[i] = '1;
+      end
+
+      $display("  Writing 4-beat INCR burst to invalid address 0x0000_5000");
+      master_vip.write_req_burst(
+        .addr(32'h0000_5000), .data(wr_data), .strb(wr_strb),
+        .id(4'd0), .burst(2'b01), .resp(resp)
+      );
+      assert(resp == 2'b11) else $error("DECERR burst write: expected DECERR(2'b11) got %0b", resp);
+      $display("  Burst write DECERR verified: resp=%0b", resp);
+
+      // Read burst from same invalid address
+      $display("  Reading 4-beat INCR burst from invalid address 0x0000_5000");
+      master_vip.read_req_burst(
+        .addr(32'h0000_5000), .beat_count(4),
+        .data(rd_data), .resp(rd_resp), .id(4'd0), .burst(2'b01)
+      );
+
+      for (int i = 0; i < 4; i++) begin
+        assert(rd_resp[i] == 2'b11)
+          else $error("DECERR burst read beat %0d: expected DECERR got %0b", i, rd_resp[i]);
+        assert(rd_data[i] == '0)
+          else $error("DECERR burst read beat %0d: expected data=0 got %h", i, rd_data[i]);
+      end
+      $display("  Burst read DECERR verified: all %0d beats returned DECERR", 4);
+    end
+
+    `TEST_CASE("Valid Address Works After DECERR")
+    begin
+      logic [1:0]            resp;
+      logic [DATA_WIDTH-1:0] rd_data;
+
+      $display("\n--- Test 22: Valid Address Works After DECERR ---");
+
+      // First trigger a DECERR
+      $display("  Triggering DECERR on invalid address 0x0000_5000");
+      master_vip.read_req_single(.addr(32'h0000_5000), .data(rd_data), .resp(resp), .id(4'd0));
+      assert(resp == 2'b11) else $error("Pre-check DECERR: expected DECERR got %0b", resp);
+
+      // Then verify valid address still works
+      $display("  Writing to valid address 0x0000_2000");
+      master_vip.write_req_single(
+        .addr(32'h0000_2000), .data(32'hCAFE_BABE), .strb(4'hF),
+        .id(4'd1), .resp(resp)
+      );
+      assert(resp == 2'b00) else $error("Post-DECERR write: expected OKAY got %0b", resp);
+
+      master_vip.read_req_single(.addr(32'h0000_2000), .data(rd_data), .resp(resp), .id(4'd1));
+      assert(resp == 2'b00) else $error("Post-DECERR read: expected OKAY got %0b", resp);
+      assert(rd_data == 32'hCAFE_BABE)
+        else $error("Post-DECERR read data mismatch exp=%h got=%h", 32'hCAFE_BABE, rd_data);
+
+      $display("  Valid address works correctly after DECERR");
     end
   end
 
