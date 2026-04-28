@@ -192,8 +192,6 @@ class Axi4FullSlaveVIP #(
                            output logic last);
     int unsigned cycles;
 
-    wait_reset_release();
-
     cycles = 0;
     do begin
       vif.wready <= 1'b1;

@@ -181,8 +181,6 @@ class Axi4FullMasterVIP #(
   // Write Data Channel - Send write data phase
   task send_wchn(input logic [DATA_WIDTH-1:0] data, input logic [STRB_WIDTH-1:0] strb,
                  input logic last);
-    int unsigned beat_count;
-    int unsigned beat_idx;
     int unsigned cycles;
 
     cycles = 0;
@@ -200,8 +198,6 @@ class Axi4FullMasterVIP #(
     end while (!vif.wready);
 
     vif.wvalid <= 1'b0;
-
-    $display("[%0t] %s TX W beats=%0d", $time, vip_name, beat_count);
   endtask
 
   // Write Response Channel - Receive write response phase
@@ -266,8 +262,6 @@ class Axi4FullMasterVIP #(
   // Read Data Channel - Receive read data phase
   task recv_rchn(ref logic [DATA_WIDTH-1:0] data, ref logic [1:0] resp, ref logic [ID_WIDTH-1:0] id,
                  ref logic last);
-    int unsigned beat_count;
-    int unsigned beat_idx;
     int unsigned cycles;
 
     vif.rready <= 1;
@@ -284,7 +278,7 @@ class Axi4FullMasterVIP #(
     id   = vif.rid;
     last = vif.rlast;
 
-    $display("[%0t] %s RX R beats=%0d id=%0d", $time, vip_name, beat_count, id);
+    $display("[%0t] %s RX R id=%0d", $time, vip_name, id);
 
     vif.rready <= 0;
   endtask
@@ -293,11 +287,9 @@ class Axi4FullMasterVIP #(
   task write_req_single(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
                         input logic [STRB_WIDTH-1:0] strb = '1, input logic [ID_WIDTH-1:0] id = '0,
                         output logic [1:0] resp);
-    begin
-      send_awchn(addr, 1, id);
-      send_wchn(data, strb, 1'b1);
-      recv_bchn(resp);
-    end
+    send_awchn(addr, 1, id);
+    send_wchn(data, strb, 1'b1);
+    recv_bchn(resp);
   endtask
 
   // Single-beat read transaction (request side)
@@ -305,12 +297,10 @@ class Axi4FullMasterVIP #(
                        output logic [1:0] resp, input logic [ID_WIDTH-1:0] id = '0);
     logic [ID_WIDTH-1:0] act_id;
     logic act_last;
-    begin
-      apply_pause();
-      send_archn(addr, 1, id);
-      apply_pause();
-      recv_rchn(data, resp, act_id, act_last);
-    end
+    apply_pause();
+    send_archn(addr, 1, id);
+    apply_pause();
+    recv_rchn(data, resp, act_id, act_last);
   endtask
 
   task write_req_burst(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data[],
@@ -354,7 +344,7 @@ class Axi4FullMasterVIP #(
     else $fatal(1, "%s read_req_burst resp array too short", vip_name);
 
     // Call the two channel APIs in sequence
-      apply_pause();
+    apply_pause();
     send_archn(addr, beat_count, id, size, burst, prot);
     for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
       apply_pause();
