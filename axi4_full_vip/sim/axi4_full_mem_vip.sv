@@ -101,6 +101,8 @@ module axi4_full_mem_vip #(
   int unsigned                    rd_beat_count;
   bit                             rd_active;
 
+  logic [ADDR_WIDTH-1:0] next_addr;
+
   function automatic int unsigned beat_bytes(input logic [SIZE_WIDTH-1:0] size);
     int unsigned bytes;
     begin
@@ -220,6 +222,7 @@ module axi4_full_mem_vip #(
   end
 
   assign s_axi_arready = (!rd_active && !s_axi_rvalid);
+  assign next_addr = next_burst_addr(rd_addr, rd_size, rd_burst, rd_beats_total);
 
   always_ff @(posedge aclk or negedge aresetn) begin
     if (!aresetn) begin
@@ -259,8 +262,6 @@ module axi4_full_mem_vip #(
           s_axi_rlast  <= 1'b0;
           rd_active    <= 1'b0;
         end else begin
-          automatic logic [ADDR_WIDTH-1:0] next_addr;
-          next_addr = next_burst_addr(rd_addr, rd_size, rd_burst, rd_beats_total);
           rd_addr       <= next_addr;
           rd_beat_count <= rd_beat_count + 1;
           s_axi_rid     <= rd_id;
