@@ -3,9 +3,8 @@
 `include "vunit_defines.svh"
 `include "axi4_stream_if.sv"
 `include "axi4_stream_vip_pkg.sv"
-`include "axi4_stream_dut.sv"
 
-module axi4_stream_dut_tb;
+module axi4_stream_vip_tb;
 
   import vunit_pkg::*;
   import axi4_stream_vip_pkg::*;
@@ -23,97 +22,12 @@ module axi4_stream_dut_tb;
   logic clk;
   logic rstn;
 
-  axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH) s_axis_if(clk, rstn);
-  axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH) m_axis_if(clk, rstn);
-
-  axi4_stream_dut #(
-    .DATA_WIDTH(DATA_WIDTH),
-    .KEEP_WIDTH(KEEP_WIDTH),
-    .TID_WIDTH(TID_WIDTH),
-    .TDEST_WIDTH(TDEST_WIDTH),
-    .TUSER_WIDTH(TUSER_WIDTH)
-  ) dut (
-    .aclk(clk),
-    .aresetn(rstn),
-    .s_axis_tdata (s_axis_if.tdata),
-    .s_axis_tvalid(s_axis_if.tvalid),
-    .s_axis_tready(s_axis_if.tready),
-    .s_axis_tkeep (s_axis_if.tkeep),
-    .s_axis_tstrb (s_axis_if.tstrb),
-    .s_axis_tlast (s_axis_if.tlast),
-    .s_axis_tid   (s_axis_if.tid),
-    .s_axis_tdest (s_axis_if.tdest),
-    .s_axis_tuser (s_axis_if.tuser),
-    .m_axis_tdata (m_axis_if.tdata),
-    .m_axis_tvalid(m_axis_if.tvalid),
-    .m_axis_tready(m_axis_if.tready),
-    .m_axis_tkeep (m_axis_if.tkeep),
-    .m_axis_tstrb (m_axis_if.tstrb),
-    .m_axis_tlast (m_axis_if.tlast),
-    .m_axis_tid   (m_axis_if.tid),
-    .m_axis_tdest (m_axis_if.tdest),
-    .m_axis_tuser (m_axis_if.tuser)
-  );
+  // Single interface: master and slave share the same bus directly
+  axi4_stream_if #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH) axis_if(clk, rstn);
 
   Axi4StreamMasterVIP #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH) master;
   Axi4StreamSlaveVIP  #(DATA_WIDTH, KEEP_WIDTH, TID_WIDTH, TDEST_WIDTH, TUSER_WIDTH) slave;
 
-  bit s_axis_stalled_q;
-  bit m_axis_stalled_q;
-  logic [DATA_WIDTH-1:0] s_axis_tdata_q;
-  logic [KEEP_WIDTH-1:0] s_axis_tkeep_q;
-  logic [KEEP_WIDTH-1:0] s_axis_tstrb_q;
-  bit s_axis_tlast_q;
-  logic [TID_WIDTH-1:0] s_axis_tid_q;
-  logic [TDEST_WIDTH-1:0] s_axis_tdest_q;
-  logic [TUSER_WIDTH-1:0] s_axis_tuser_q;
-  logic [DATA_WIDTH-1:0] m_axis_tdata_q;
-  logic [KEEP_WIDTH-1:0] m_axis_tkeep_q;
-  logic [KEEP_WIDTH-1:0] m_axis_tstrb_q;
-  bit m_axis_tlast_q;
-  logic [TID_WIDTH-1:0] m_axis_tid_q;
-  logic [TDEST_WIDTH-1:0] m_axis_tdest_q;
-  logic [TUSER_WIDTH-1:0] m_axis_tuser_q;
-
-  always_ff @(posedge clk) begin
-    if (rstn && s_axis_stalled_q && s_axis_if.tvalid && !s_axis_if.tready) begin
-      assert(s_axis_if.tdata == s_axis_tdata_q) else $error("S_AXIS TDATA changed while stalled");
-      assert(s_axis_if.tkeep == s_axis_tkeep_q) else $error("S_AXIS TKEEP changed while stalled");
-      assert(s_axis_if.tstrb == s_axis_tstrb_q) else $error("S_AXIS TSTRB changed while stalled");
-      assert(s_axis_if.tlast == s_axis_tlast_q) else $error("S_AXIS TLAST changed while stalled");
-      assert(s_axis_if.tid == s_axis_tid_q) else $error("S_AXIS TID changed while stalled");
-      assert(s_axis_if.tdest == s_axis_tdest_q) else $error("S_AXIS TDEST changed while stalled");
-      assert(s_axis_if.tuser == s_axis_tuser_q) else $error("S_AXIS TUSER changed while stalled");
-    end
-
-    if (rstn && m_axis_stalled_q && m_axis_if.tvalid && !m_axis_if.tready) begin
-      assert(m_axis_if.tdata == m_axis_tdata_q) else $error("M_AXIS TDATA changed while stalled");
-      assert(m_axis_if.tkeep == m_axis_tkeep_q) else $error("M_AXIS TKEEP changed while stalled");
-      assert(m_axis_if.tstrb == m_axis_tstrb_q) else $error("M_AXIS TSTRB changed while stalled");
-      assert(m_axis_if.tlast == m_axis_tlast_q) else $error("M_AXIS TLAST changed while stalled");
-      assert(m_axis_if.tid == m_axis_tid_q) else $error("M_AXIS TID changed while stalled");
-      assert(m_axis_if.tdest == m_axis_tdest_q) else $error("M_AXIS TDEST changed while stalled");
-      assert(m_axis_if.tuser == m_axis_tuser_q) else $error("M_AXIS TUSER changed while stalled");
-    end
-
-    s_axis_stalled_q <= rstn && s_axis_if.tvalid && !s_axis_if.tready;
-    s_axis_tdata_q   <= s_axis_if.tdata;
-    s_axis_tkeep_q   <= s_axis_if.tkeep;
-    s_axis_tstrb_q   <= s_axis_if.tstrb;
-    s_axis_tlast_q   <= s_axis_if.tlast;
-    s_axis_tid_q     <= s_axis_if.tid;
-    s_axis_tdest_q   <= s_axis_if.tdest;
-    s_axis_tuser_q   <= s_axis_if.tuser;
-
-    m_axis_stalled_q <= rstn && m_axis_if.tvalid && !m_axis_if.tready;
-    m_axis_tdata_q   <= m_axis_if.tdata;
-    m_axis_tkeep_q   <= m_axis_if.tkeep;
-    m_axis_tstrb_q   <= m_axis_if.tstrb;
-    m_axis_tlast_q   <= m_axis_if.tlast;
-    m_axis_tid_q     <= m_axis_if.tid;
-    m_axis_tdest_q   <= m_axis_if.tdest;
-    m_axis_tuser_q   <= m_axis_if.tuser;
-  end
 
   function automatic logic [DATA_WIDTH-1:0] build_tdata(int unsigned index);
     logic [DATA_WIDTH-1:0] value;
@@ -210,25 +124,32 @@ module axi4_stream_dut_tb;
     end
   endtask
 
-  task automatic monitor_continuous_stream(input int unsigned expected_count,
-                                           output int unsigned observed_count,
-                                           output int unsigned observed_last_count);
+  // Receive continuous stream using slave VIP's recv_single API
+  // This avoids directly driving axis_if.tready (which would conflict
+  // with the slave VIP's modport drive of the same signal).
+  task automatic recv_continuous_stream(input int unsigned expected_count,
+                                        output int unsigned observed_count,
+                                        output int unsigned observed_last_count);
+    logic [DATA_WIDTH-1:0] rx_tdata;
+    logic [KEEP_WIDTH-1:0] rx_tkeep;
+    logic [KEEP_WIDTH-1:0] rx_tstrb;
+    bit                    rx_tlast;
+    logic [TID_WIDTH-1:0]  rx_tid;
+    logic [TDEST_WIDTH-1:0] rx_tdest;
+    logic [TUSER_WIDTH-1:0] rx_tuser;
     int unsigned last_seen_tid;
     int unsigned last_seen_tlast_count;
     begin
       observed_count = 0;
       last_seen_tid = 0;
       last_seen_tlast_count = 0;
-      m_axis_if.tready = 1'b1;
 
       while (observed_count < expected_count) begin
-        @(posedge clk);
-        if (m_axis_if.tvalid && m_axis_if.tready) begin
-          observed_count++;
-          last_seen_tid = m_axis_if.tid;
-          if (m_axis_if.tlast) begin
-            last_seen_tlast_count++;
-          end
+        slave.recv_single(rx_tdata, rx_tkeep, rx_tstrb, rx_tlast, rx_tid, rx_tdest, rx_tuser);
+        observed_count++;
+        last_seen_tid = rx_tid;
+        if (rx_tlast) begin
+          last_seen_tlast_count++;
         end
       end
 
@@ -236,8 +157,6 @@ module axi4_stream_dut_tb;
       assert(last_seen_tid == (expected_count - 1))
         else $error("Continuous stream last TID mismatch exp=%0d got=%0d",
                     expected_count - 1, last_seen_tid);
-      m_axis_if.tready = 1'b0;
-      @(posedge clk);
     end
   endtask
 
@@ -251,16 +170,16 @@ module axi4_stream_dut_tb;
     #20 rstn = 1;
   end
 
+  // Initialize master-driven signals only (tready is driven by slave VIP through its modport)
   initial begin
-    s_axis_if.tvalid = 1'b0;
-    s_axis_if.tdata  = '0;
-    s_axis_if.tkeep  = '0;
-    s_axis_if.tstrb  = '0;
-    s_axis_if.tlast  = 1'b0;
-    s_axis_if.tid    = '0;
-    s_axis_if.tdest  = '0;
-    s_axis_if.tuser  = '0;
-    m_axis_if.tready = 1'b0;
+    axis_if.tvalid = 1'b0;
+    axis_if.tdata  = '0;
+    axis_if.tkeep  = '0;
+    axis_if.tstrb  = '0;
+    axis_if.tlast  = 1'b0;
+    axis_if.tid    = '0;
+    axis_if.tdest  = '0;
+    axis_if.tuser  = '0;
   end
 
   `TEST_SUITE begin
@@ -270,10 +189,14 @@ module axi4_stream_dut_tb;
 
     `TEST_SUITE_SETUP begin
 
-      master = new(s_axis_if.master, "master_vip");
-      slave  = new(m_axis_if.slave, "slave_vip");
+      master = new(axis_if.master, "master_vip");
+      slave  = new(axis_if.slave, "slave_vip");
 
       @(posedge rstn);
+      @(posedge clk);
+
+      master.clear_outputs();
+      slave.clear_outputs();
       @(posedge clk);
     end
 
@@ -310,9 +233,9 @@ module axi4_stream_dut_tb;
       slave.configure_backpressure(1'b0);
       fork
         drive_stream(0, CONTINUOUS_STIMULUS_COUNT);
-        monitor_continuous_stream(CONTINUOUS_STIMULUS_COUNT,
-                                  observed_count,
-                                  observed_tlast_count);
+        recv_continuous_stream(CONTINUOUS_STIMULUS_COUNT,
+                               observed_count,
+                               observed_tlast_count);
       join
 
       assert(observed_count == CONTINUOUS_STIMULUS_COUNT)
