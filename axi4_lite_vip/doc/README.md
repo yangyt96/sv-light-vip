@@ -10,7 +10,7 @@ environment.
 The VIP currently includes:
 
 - A parameterized AXI4-Lite interface
-- A master VIP with blocking `write` and `read` tasks
+- A master VIP with high-level `write`/`read` tasks and channel-level APIs (`send_awchn`, `send_wchn`, `recv_bchn`, `send_archn`, `recv_rchn`)
 - A memory slave VIP with byte-enable support
 - Optional pause generation on the master side
 - Transaction logging to the simulator CLI
@@ -48,19 +48,31 @@ Defines the five AXI4-Lite channels:
 
 ### `Axi4LiteMasterVIP`
 
-The master VIP drives AXI4-Lite transactions through a virtual interface.
+The master VIP drives AXI4-Lite transactions through a virtual interface. It follows the same channel-level API pattern as the AXI4-Full Master VIP.
 
-Main APIs:
+#### High-level APIs (convenience)
 
 ```systemverilog
 master.write(addr, data, strb, resp, prot);
 master.read(addr, data, resp, prot);
 ```
 
-Pause generation:
+#### Channel-level APIs (fine-grained control)
+
+```systemverilog
+master.send_awchn(addr, prot);     // Write Address Channel
+master.send_wchn(data, strb);      // Write Data Channel
+master.recv_bchn(resp);            // Write Response Channel
+master.send_archn(addr, prot);     // Read Address Channel
+master.recv_rchn(data, resp);      // Read Data Channel
+```
+
+#### Configuration
 
 ```systemverilog
 master.configure_pause_generator(enable, min_cycles, max_cycles);
+master.configure_timeout(cycles);
+master.clear_outputs();            // Initialize all driven signals to zero
 ```
 
 ### `axi4_lite_mem_vip.sv`

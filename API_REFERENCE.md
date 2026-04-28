@@ -54,12 +54,30 @@ Synthesizable APB slave with byte-addressed storage, zero-wait-state response, a
 
 ### Master VIP — [`axi4_lite_master_vip.sv`](axi4_lite_vip/sim/axi4_lite_master_vip.sv)
 
+#### High-level APIs
+
 | Method | Description |
 |--------|-------------|
-| `write(addr, data, strb, resp, prot)` | AXI4-Lite write transaction |
-| `read(addr, data, resp, prot)` | AXI4-Lite read transaction |
+| `write(addr, data, strb, resp, prot)` | AXI4-Lite write transaction (AW + W + B) |
+| `read(addr, data, resp, prot)` | AXI4-Lite read transaction (AR + R) |
+
+#### Channel-level APIs (fine-grained control)
+
+| Method | Description |
+|--------|-------------|
+| `send_awchn(addr, prot)` | Send write address |
+| `send_wchn(data, strb)` | Send write data |
+| `recv_bchn(resp)` | Receive write response |
+| `send_archn(addr, prot)` | Send read address |
+| `recv_rchn(data, resp)` | Receive read data |
+
+#### Configuration
+
+| Method | Description |
+|--------|-------------|
 | `configure_pause_generator(enable, min_cycles, max_cycles)` | Configure random delay between transactions |
 | `configure_timeout(cycles)` | Set transaction timeout |
+| `clear_outputs()` | Initialize all driven signals to zero |
 
 ### Memory VIP (hardware module) — [`axi4_lite_mem_vip.sv`](axi4_lite_vip/sim/axi4_lite_mem_vip.sv)
 
