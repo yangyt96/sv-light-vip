@@ -17,6 +17,12 @@ class I2CSlaveVIP;
     timeout_cycles = cycles;
   endfunction
 
+  // Clear all slave output signals to default state
+  task automatic clear_outputs();
+    vif.slave_scl_low <= 1'b0;
+    vif.slave_sda_low <= 1'b0;
+  endtask
+
   task automatic idle();
     vif.slave_scl_low <= 1'b0;
     vif.slave_sda_low <= 1'b0;

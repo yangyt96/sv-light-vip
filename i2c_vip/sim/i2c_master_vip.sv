@@ -18,6 +18,12 @@ class I2CMasterVIP #(
     timeout_cycles = cycles;
   endfunction
 
+  // Clear all master output signals to default state
+  task automatic clear_outputs();
+    vif.master_scl_low <= 1'b0;
+    vif.master_sda_low <= 1'b0;
+  endtask
+
   task automatic idle();
     vif.master_scl_low <= 1'b0;
     vif.master_sda_low <= 1'b0;

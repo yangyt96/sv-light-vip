@@ -32,6 +32,13 @@ class I2STxVIP #(
     timeout_cycles = cycles;
   endfunction
 
+  // Clear all transmitter output signals to default state
+  task automatic clear_outputs();
+    vif.bclk <= 1'b0;
+    vif.ws   <= 1'b0;
+    vif.sd   <= 1'b0;
+  endtask
+
   task automatic idle();
     vif.bclk <= 1'b0;
     vif.ws   <= 1'b0;

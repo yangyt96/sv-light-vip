@@ -53,6 +53,11 @@ class UartTxVIP #(
     end
   endfunction
 
+  // Clear all transmitter output signals to default state
+  task automatic clear_outputs();
+    vif.serial_data <= 1'b1;
+  endtask
+
   task automatic idle();
     vif.serial_data <= 1'b1;
   endtask

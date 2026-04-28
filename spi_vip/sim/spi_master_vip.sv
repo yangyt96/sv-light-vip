@@ -59,6 +59,13 @@ class SpiMasterVIP #(
     end
   endtask
 
+  // Clear all master output signals to default state
+  task automatic clear_outputs();
+    vif.sclk <= cpol;
+    vif.cs_n <= 1'b1;
+    vif.mosi <= 1'b0;
+  endtask
+
   task automatic idle();
     vif.sclk <= cpol;
     vif.cs_n <= 1'b1;

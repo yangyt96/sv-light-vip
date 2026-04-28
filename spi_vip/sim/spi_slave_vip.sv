@@ -27,6 +27,11 @@ class SpiSlaveVIP #(
     this.cpha = cpha;
   endfunction
 
+  // Clear all slave output signals to default state
+  task automatic clear_outputs();
+    vif.miso <= 1'b0;
+  endtask
+
   task automatic idle();
     vif.miso <= 1'b0;
   endtask
