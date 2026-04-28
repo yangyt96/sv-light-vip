@@ -92,11 +92,12 @@ class Axi4LiteMasterVIP #(
   task automatic send_awchn(input logic [ADDR_WIDTH-1:0] addr, input logic [2:0] prot = 3'b000);
     int unsigned cycles;
 
+    vif.awaddr  <= addr;
+    vif.awprot  <= prot;
+    vif.awvalid <= 1'b1;
+
     cycles = 0;
     do begin
-      vif.awaddr  <= addr;
-      vif.awprot  <= prot;
-      vif.awvalid <= 1'b1;
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
@@ -117,11 +118,12 @@ class Axi4LiteMasterVIP #(
                            input logic [STRB_WIDTH-1:0] strb = '1);
     int unsigned cycles;
 
+    vif.wdata  <= data;
+    vif.wstrb  <= strb;
+    vif.wvalid <= 1'b1;
+
     cycles = 0;
     do begin
-      vif.wdata  <= data;
-      vif.wstrb  <= strb;
-      vif.wvalid <= 1'b1;
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
@@ -139,9 +141,10 @@ class Axi4LiteMasterVIP #(
   task automatic recv_bchn(output logic [1:0] resp);
     int unsigned cycles;
 
+    vif.bready <= 1'b1;
+
     cycles = 0;
     do begin
-      vif.bready <= 1'b1;
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
@@ -206,9 +209,10 @@ class Axi4LiteMasterVIP #(
   task automatic recv_rchn(output logic [DATA_WIDTH-1:0] data, output logic [1:0] resp);
     int unsigned cycles;
 
+    vif.rready <= 1'b1;
+
     cycles = 0;
     do begin
-      vif.rready <= 1'b1;
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
