@@ -60,9 +60,9 @@ class SpiMasterVIP #(
   endtask
 
   task automatic idle();
-    vif.sclk = cpol;
-    vif.cs_n = 1'b1;
-    vif.mosi = 1'b0;
+    vif.sclk <= cpol;
+    vif.cs_n <= 1'b1;
+    vif.mosi <= 1'b0;
   endtask
 
   task automatic wait_half_sclk();
@@ -92,7 +92,7 @@ class SpiMasterVIP #(
     end
     @(posedge vif.clk);
 
-    vif.cs_n = 1'b0;
+    vif.cs_n <= 1'b0;
 
     // Optional pause after CS assertion
     if (enable_pause_generator) begin
@@ -103,18 +103,18 @@ class SpiMasterVIP #(
     for (int bit_idx = DATA_BITS - 1; bit_idx >= 0; bit_idx--) begin
       if (cpha == 1'b0) begin
         // CPHA=0: data output before first edge, sampled on first edge
-        vif.mosi = tx_data[bit_idx];
+        vif.mosi <= tx_data[bit_idx];
         wait_half_sclk();
-        vif.sclk = ~cpol;  // first edge
+        vif.sclk <= ~cpol;  // first edge
         wait_half_sclk();
         rx_data[bit_idx] = vif.miso;
-        vif.sclk = cpol;  // second edge (back to idle)
+        vif.sclk <= cpol;  // second edge (back to idle)
       end else begin
         // CPHA=1: first edge shifts data out, second edge samples data
-        vif.sclk = ~cpol;  // first edge
-        vif.mosi = tx_data[bit_idx];
+        vif.sclk <= ~cpol;  // first edge
+        vif.mosi <= tx_data[bit_idx];
         wait_half_sclk();
-        vif.sclk = cpol;  // second edge
+        vif.sclk <= cpol;  // second edge
         wait_half_sclk();
         rx_data[bit_idx] = vif.miso;
       end
@@ -127,8 +127,8 @@ class SpiMasterVIP #(
     end
 
     wait_half_sclk();
-    vif.cs_n = 1'b1;
-    vif.mosi = 1'b0;
+    vif.cs_n <= 1'b1;
+    vif.mosi <= 1'b0;
 
     $display("[%0t] %s TX=%h RX=%h (CPOL=%0b CPHA=%0b)", $time, vip_name, tx_data, rx_data, cpol,
              cpha);

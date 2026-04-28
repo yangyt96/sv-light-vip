@@ -19,8 +19,8 @@ class I2CMasterVIP #(
   endfunction
 
   task automatic idle();
-    vif.master_scl_low = 1'b0;
-    vif.master_sda_low = 1'b0;
+    vif.master_scl_low <= 1'b0;
+    vif.master_sda_low <= 1'b0;
   endtask
 
   task automatic wait_half_scl();
@@ -30,7 +30,7 @@ class I2CMasterVIP #(
   task automatic release_scl();
     int unsigned cycles;
 
-    vif.master_scl_low = 1'b0;
+    vif.master_scl_low <= 1'b0;
     cycles = 0;
     do begin
       @(posedge vif.clk);
@@ -42,54 +42,54 @@ class I2CMasterVIP #(
   endtask
 
   task automatic start_condition();
-    vif.master_sda_low = 1'b0;
-    vif.master_scl_low = 1'b0;
+    vif.master_sda_low <= 1'b0;
+    vif.master_scl_low <= 1'b0;
     wait_half_scl();
     release_scl();
     wait_half_scl();
-    vif.master_sda_low = 1'b1;
+    vif.master_sda_low <= 1'b1;
     wait_half_scl();
-    vif.master_scl_low = 1'b1;
+    vif.master_scl_low <= 1'b1;
     wait_half_scl();
   endtask
 
   // Repeated start: SDA goes high-to-low while SCL is high
   task automatic repeated_start_condition();
-    vif.master_sda_low = 1'b0;
+    vif.master_sda_low <= 1'b0;
     wait_half_scl();
     release_scl();
     wait_half_scl();
-    vif.master_sda_low = 1'b1;
+    vif.master_sda_low <= 1'b1;
     wait_half_scl();
-    vif.master_scl_low = 1'b1;
+    vif.master_scl_low <= 1'b1;
     wait_half_scl();
   endtask
 
   task automatic stop_condition();
-    vif.master_sda_low = 1'b1;
+    vif.master_sda_low <= 1'b1;
     wait_half_scl();
     release_scl();
     wait_half_scl();
-    vif.master_sda_low = 1'b0;
+    vif.master_sda_low <= 1'b0;
     wait_half_scl();
   endtask
 
   task automatic write_bit(input bit bit_value);
-    vif.master_sda_low = !bit_value;
+    vif.master_sda_low <= !bit_value;
     wait_half_scl();
     release_scl();
     wait_half_scl();
-    vif.master_scl_low = 1'b1;
+    vif.master_scl_low <= 1'b1;
     wait_half_scl();
   endtask
 
   task automatic read_bit(output bit bit_value);
-    vif.master_sda_low = 1'b0;
+    vif.master_sda_low <= 1'b0;
     wait_half_scl();
     release_scl();
     wait_half_scl();
     bit_value = vif.sda;
-    vif.master_scl_low = 1'b1;
+    vif.master_scl_low <= 1'b1;
     wait_half_scl();
   endtask
 

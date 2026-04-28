@@ -28,7 +28,7 @@ class SpiSlaveVIP #(
   endfunction
 
   task automatic idle();
-    vif.miso = 1'b0;
+    vif.miso <= 1'b0;
   endtask
 
   // Wait for the clock edge where data is sampled (MOSI read by slave).
@@ -90,7 +90,7 @@ class SpiSlaveVIP #(
 
     if (cpha == 1'b0) begin
       // CPHA=0: output first data bit before first clock edge
-      vif.miso = tx_data[DATA_BITS-1];
+      vif.miso <= tx_data[DATA_BITS-1];
 
       for (int bit_idx = DATA_BITS - 1; bit_idx >= 0; bit_idx--) begin
         wait_sample_edge();
@@ -98,7 +98,7 @@ class SpiSlaveVIP #(
 
         if (bit_idx > 0) begin
           wait_shift_edge();
-          vif.miso = tx_data[bit_idx-1];
+          vif.miso <= tx_data[bit_idx-1];
         end
       end
     end else begin
@@ -107,7 +107,7 @@ class SpiSlaveVIP #(
         if (bit_idx < (DATA_BITS - 1)) begin
           wait_shift_edge();
         end
-        vif.miso = tx_data[bit_idx];
+        vif.miso <= tx_data[bit_idx];
 
         wait_sample_edge();
         rx_data[bit_idx] = vif.mosi;
@@ -115,7 +115,7 @@ class SpiSlaveVIP #(
     end
 
     @(posedge vif.cs_n);
-    vif.miso = 1'b0;
+    vif.miso <= 1'b0;
 
     $display("[%0t] %s TX=%h RX=%h (CPOL=%0b CPHA=%0b)", $time, vip_name, tx_data, rx_data, cpol,
              cpha);

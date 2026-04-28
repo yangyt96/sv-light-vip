@@ -33,9 +33,9 @@ class I2STxVIP #(
   endfunction
 
   task automatic idle();
-    vif.bclk = 1'b0;
-    vif.ws   = 1'b0;
-    vif.sd   = 1'b0;
+    vif.bclk <= 1'b0;
+    vif.ws   <= 1'b0;
+    vif.sd   <= 1'b0;
   endtask
 
   task automatic wait_half_bclk();
@@ -43,11 +43,11 @@ class I2STxVIP #(
   endtask
 
   task automatic drive_bit(input bit value);
-    vif.sd = value;
+    vif.sd <= value;
     wait_half_bclk();
-    vif.bclk = 1'b1;
+    vif.bclk <= 1'b1;
     wait_half_bclk();
-    vif.bclk = 1'b0;
+    vif.bclk <= 1'b0;
   endtask
 
   // API: transmit one stereo I2S frame, MSB first.
@@ -67,7 +67,7 @@ class I2STxVIP #(
     end
     @(posedge vif.clk);
 
-    vif.ws = 1'b0;
+    vif.ws <= 1'b0;
     drive_bit(1'b0);
     for (int bit_idx = SAMPLE_WIDTH - 1; bit_idx >= 0; bit_idx--) begin
       drive_bit(left_sample[bit_idx]);
@@ -78,7 +78,7 @@ class I2STxVIP #(
       end
     end
 
-    vif.ws = 1'b1;
+    vif.ws <= 1'b1;
     drive_bit(1'b0);
     for (int bit_idx = SAMPLE_WIDTH - 1; bit_idx >= 0; bit_idx--) begin
       drive_bit(right_sample[bit_idx]);
@@ -89,8 +89,8 @@ class I2STxVIP #(
       end
     end
 
-    vif.ws = 1'b0;
-    vif.sd = 1'b0;
+    vif.ws <= 1'b0;
+    vif.sd <= 1'b0;
 
     $display("[%0t] %s TX left=%h right=%h", $time, vip_name, left_sample, right_sample);
   endtask

@@ -18,15 +18,15 @@ class I2CSlaveVIP;
   endfunction
 
   task automatic idle();
-    vif.slave_scl_low = 1'b0;
-    vif.slave_sda_low = 1'b0;
+    vif.slave_scl_low <= 1'b0;
+    vif.slave_sda_low <= 1'b0;
   endtask
 
   // Stretch SCL low for a given number of system clock cycles
   task automatic stretch_scl(input int unsigned cycles);
-    vif.slave_scl_low = 1'b1;
+    vif.slave_scl_low <= 1'b1;
     repeat (cycles) @(posedge vif.clk);
-    vif.slave_scl_low = 1'b0;
+    vif.slave_scl_low <= 1'b0;
   endtask
 
   task automatic wait_start();
@@ -93,37 +93,37 @@ class I2CSlaveVIP;
 
   task automatic send_ack(input bit ack);
     @(negedge vif.scl);
-    vif.slave_sda_low = ack;
+    vif.slave_sda_low <= ack;
     @(posedge vif.scl);
     @(negedge vif.scl);
-    vif.slave_sda_low = 1'b0;
+    vif.slave_sda_low <= 1'b0;
   endtask
 
   // Send ACK with optional clock stretching
   task automatic send_ack_stretch(input bit ack, input int unsigned stretch_cycles = 0);
     @(negedge vif.scl);
-    vif.slave_sda_low = ack;
+    vif.slave_sda_low <= ack;
     if (stretch_cycles > 0) begin
       stretch_scl(stretch_cycles);
     end
     @(posedge vif.scl);
     @(negedge vif.scl);
-    vif.slave_sda_low = 1'b0;
+    vif.slave_sda_low <= 1'b0;
   endtask
 
   task automatic write_raw_byte(input logic [7:0] data);
-    vif.slave_sda_low = !data[7];
+    vif.slave_sda_low <= !data[7];
 
     for (int bit_idx = 7; bit_idx >= 0; bit_idx--) begin
       @(posedge vif.scl);
       if (bit_idx > 0) begin
         @(negedge vif.scl);
-        vif.slave_sda_low = !data[bit_idx-1];
+        vif.slave_sda_low <= !data[bit_idx-1];
       end
     end
 
     @(negedge vif.scl);
-    vif.slave_sda_low = 1'b0;
+    vif.slave_sda_low <= 1'b0;
   endtask
 
   task automatic receive_ack(output bit ack);
