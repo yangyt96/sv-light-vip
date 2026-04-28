@@ -3,6 +3,10 @@
 // Must be `included and instantiated directly in the testbench.
 // Simple AXI4-Lite memory slave with byte-addressed storage.
 // Parameterized for ADDR_WIDTH, DATA_WIDTH, and STRB_WIDTH
+//
+// Behavior:
+//   - Address within MEM_BYTES range: normal read/write with OKAY response
+//   - Address outside MEM_BYTES range: returns DECERR (2'b11) response
 
 `timescale 1ns / 1ps
 
@@ -40,6 +44,11 @@ module axi4_lite_mem_vip #(
 
   // Write address latch (captured during AW handshake for use during W handshake)
   logic [ADDR_WIDTH-1:0] wr_addr;
+
+  // Address range check
+  function automatic logic is_valid_addr(input logic [ADDR_WIDTH-1:0] addr);
+    return (addr < MEM_BYTES);
+  endfunction
 
   // Address index helper
   function automatic int unsigned mem_index(input logic [ADDR_WIDTH-1:0] addr);
@@ -98,8 +107,13 @@ module axi4_lite_mem_vip #(
       if (wvalid && wready) begin
         wready <= 1'b0;
         bvalid <= 1'b1;
-        bresp  <= 2'b00;
-        write_word(wr_addr, wdata, wstrb);
+        // DECERR if address out of range, otherwise OKAY
+        if (is_valid_addr(wr_addr)) begin
+          bresp <= 2'b00;  // OKAY
+          write_word(wr_addr, wdata, wstrb);
+        end else begin
+          bresp <= 2'b11;  // DECERR
+        end
       end
 
       // B channel handshake: deassert response, return to idle
@@ -123,9 +137,14 @@ module axi4_lite_mem_vip #(
       // AR channel handshake: capture read data, assert R response
       if (arvalid && arready) begin
         arready <= 1'b0;
-        rdata   <= read_word(araddr);
-        rresp   <= 2'b00;
-        rvalid  <= 1'b1;
+        if (is_valid_addr(araddr)) begin
+          rdata <= read_word(araddr);
+          rresp <= 2'b00;  // OKAY
+        end else begin
+          rdata <= '0;
+          rresp <= 2'b11;  // DECERR
+        end
+        rvalid <= 1'b1;
       end
 
       // R channel handshake: deassert response, return to idle

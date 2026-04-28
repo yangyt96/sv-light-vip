@@ -186,8 +186,24 @@ slave_vip.configure_backpressure(.enable(1'b1), .min_cycles(0), .max_cycles(3));
 ### `axi4_lite_mem_vip.sv`
 
 The memory VIP is a simple AXI4-Lite slave module. It stores data in a
-byte-addressed array, returns `OKAY` responses, and honors `wstrb` byte enables
-during writes.
+byte-addressed array, honors `wstrb` byte enables during writes, and returns
+`OKAY` responses for valid accesses.
+
+**Address range checking:**
+
+If the accessed address is outside the `MEM_BYTES` range, the memory VIP returns
+`DECERR` (2'b11) on both write and read responses. This allows testbenches to
+verify proper handling of out-of-range address decoding.
+
+```systemverilog
+// Write to out-of-range address → DECERR
+master.write_req_single(.addr(32'h1000), .data(32'hDEADBEEF), .strb(4'hF), .resp(resp));
+assert(resp == 2'b11);  // DECERR
+
+// Read from out-of-range address → DECERR
+master.read_req_single(.addr(32'h1000), .data(rd_data), .resp(resp));
+assert(resp == 2'b11);  // DECERR
+```
 
 ## Testbench Summary
 
@@ -196,7 +212,9 @@ during writes.
 | Test Case | Description |
 |-----------|-------------|
 | **Write then Read** | Multiple writes with varying byte strobes, then readback verification |
-| *(single test with 32 writes + 32 reads)* | |
+| **Backpressure Write** | Write with master pause generator to simulate backpressure |
+| **Backpressure Read** | Read with master pause generator to simulate backpressure |
+| **Error Injection Mem VIP** | SLVERR on write and DECERR on read via class-based slave VIP |
 
 ### `axi4_lite_vip_tb.sv` — Slave VIP tests
 

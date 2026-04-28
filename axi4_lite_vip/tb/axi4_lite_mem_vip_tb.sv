@@ -187,6 +187,34 @@ module axi4_lite_mem_vip_tb;
         prev_addr = build_read_addr(idx);
       end
     end
+
+    `TEST_CASE("Out-of-Range Address DECERR") begin
+      logic [1:0]            wr_resp;
+      logic [DATA_WIDTH-1:0] rd_data;
+      logic [1:0]            rd_resp;
+
+      $display("\n--- Out-of-Range Address DECERR Test ---");
+
+      // Write to address beyond MEM_BYTES (1024 = 0x400)
+      master.write_req_single(.addr(16'h1000), .data(32'hDEADBEEF), .strb(4'hF), .resp(wr_resp));
+      assert(wr_resp == 2'b11) else $error("Expected DECERR (3) for out-of-range write, got resp=%0h", wr_resp);
+
+      // Read from address beyond MEM_BYTES
+      master.read_req_single(.addr(16'h1000), .data(rd_data), .resp(rd_resp));
+      assert(rd_resp == 2'b11) else $error("Expected DECERR (3) for out-of-range read, got resp=%0h", rd_resp);
+
+      // Verify that in-range access still works after out-of-range access
+      master.write_req_single(.addr(16'h0000), .data(32'h12345678), .strb(4'hF), .resp(wr_resp));
+      assert(wr_resp == 2'b00) else $error("In-range write after DECERR should be OKAY, got resp=%0h", wr_resp);
+
+      master.read_req_single(.addr(16'h0000), .data(rd_data), .resp(rd_resp));
+      assert(rd_resp == 2'b00) else $error("In-range read after DECERR should be OKAY, got resp=%0h", rd_resp);
+      assert(rd_data == 32'h12345678)
+        else $error("In-range read data mismatch exp=%h got=%h", 32'h12345678, rd_data);
+
+      $display("Out-of-range DECERR test passed");
+    end
+
   end
 
 endmodule
