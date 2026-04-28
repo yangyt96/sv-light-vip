@@ -101,7 +101,7 @@ module axi4_full_mem_vip #(
   int unsigned                    rd_beat_count;
   bit                             rd_active;
 
-  logic [ADDR_WIDTH-1:0] next_addr;
+  logic         [ ADDR_WIDTH-1:0] next_addr;
 
   function automatic int unsigned beat_bytes(input logic [SIZE_WIDTH-1:0] size);
     int unsigned bytes;
