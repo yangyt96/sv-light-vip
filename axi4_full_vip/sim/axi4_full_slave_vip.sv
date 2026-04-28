@@ -1,6 +1,20 @@
 // AXI4 Full Slave VIP
 // Software class-based slave that provides backpressure and transaction monitoring.
 // Can be used standalone or alongside axi4_full_mem_vip for test scenarios.
+//
+// Architecture follows symmetric channel-level API pattern as Axi4FullMasterVIP:
+//   - recv_awchn() : Receive Write Address Channel (mirror of Master send_awchn)
+//   - recv_wchn()  : Receive Write Data Channel  (mirror of Master send_wchn)
+//   - send_bchn()  : Send Write Response Channel  (mirror of Master recv_bchn)
+//   - recv_archn() : Receive Read Address Channel (mirror of Master send_archn)
+//   - send_rchn()  : Send Read Data Channel       (mirror of Master recv_rchn)
+//
+// High-level convenience tasks:
+//   - expect_write_single() : recv_awchn + recv_wchn (single beat) + send_bchn
+//   - expect_write_burst()  : recv_awchn + recv_wchn (all beats) + send_bchn
+//   - respond_read_single() : recv_archn + send_rchn (single beat)
+//   - respond_read_burst()  : recv_archn + send_rchn (all beats)
+//
 // Features:
 //   - Backpressure on AW/W/AR channels (stall before ready)
 //   - Backpressure on B/R channels (stall before valid)
@@ -186,7 +200,7 @@ class Axi4FullSlaveVIP #(
       @(posedge vif.aclk);
       cycles++;
       if (cycles >= timeout_cycles) begin
-        $fatal(1, "%s timed out waiting for AWVALID", vip_name);
+        $fatal(1, "%s timed out waiting for WVALID", vip_name);
       end
     end while (!vif.wvalid);
 
@@ -217,12 +231,8 @@ class Axi4FullSlaveVIP #(
     data = new[beat_count];
     strb = new[beat_count];
 
-    $display("[%0t] debug slave 0 beat_count=%0d", $time, beat_count);
-
     for (int i = 0; i < beat_count; i++) begin
       recv_wchn(beat_data, beat_strb, beat_last);
-
-      $display("[%0t] debug slave 1 itr=%0d", $time, i);
 
       data[i] = beat_data;
       strb[i] = beat_strb;
@@ -262,10 +272,13 @@ class Axi4FullSlaveVIP #(
     // @(posedge vif.aclk);
   endtask
 
-  // Complete write transaction: expect write + send response
-  task automatic expect_write_and_respond(ref logic [DATA_WIDTH-1:0] data[],
-                                          ref logic [STRB_WIDTH-1:0] strb[],
-                                          input logic [1:0] resp = 2'b00);
+  // ─────────────────────────────────────────────
+  // High-level Write: recv_awchn + recv_wchn (all beats) + send_bchn
+  // Symmetric with Master's write_burst()
+  // ─────────────────────────────────────────────
+  task automatic expect_write_burst(ref logic [DATA_WIDTH-1:0] data[],
+                                    ref logic [STRB_WIDTH-1:0] strb[],
+                                    input logic [1:0] resp = 2'b00);
     logic [ADDR_WIDTH-1:0] addr;
     logic [ID_WIDTH-1:0] id;
     logic [LEN_WIDTH-1:0] len;
@@ -274,6 +287,31 @@ class Axi4FullSlaveVIP #(
     logic [PROT_WIDTH-1:0] prot;
 
     expect_write(addr, data, strb, id, len, size, burst, prot);
+    send_bchn(id, resp);
+  endtask
+
+  // ─────────────────────────────────────────────
+  // Single-beat Write: recv_awchn + recv_wchn (1 beat) + send_bchn
+  // Symmetric with Master's write()
+  // ─────────────────────────────────────────────
+  task automatic expect_write_single(input logic [DATA_WIDTH-1:0] data,
+                                     input logic [STRB_WIDTH-1:0] strb = '1,
+                                     input logic [1:0] resp = 2'b00);
+    logic [ADDR_WIDTH-1:0] addr;
+    logic [ID_WIDTH-1:0] id;
+    logic [LEN_WIDTH-1:0] len;
+    logic [SIZE_WIDTH-1:0] size;
+    logic [BURST_WIDTH-1:0] burst;
+    logic [PROT_WIDTH-1:0] prot;
+    logic [DATA_WIDTH-1:0] data_arr[];
+    logic [STRB_WIDTH-1:0] strb_arr[];
+
+    data_arr = new[1];
+    strb_arr = new[1];
+    data_arr[0] = data;
+    strb_arr[0] = strb;
+
+    expect_write(addr, data_arr, strb_arr, id, len, size, burst, prot);
     send_bchn(id, resp);
   endtask
 
@@ -351,8 +389,11 @@ class Axi4FullSlaveVIP #(
     // @(posedge vif.aclk);
   endtask
 
-  // Complete read transaction: accept address + send all data beats
-  task automatic respond_read(ref logic [DATA_WIDTH-1:0] data[], input logic [1:0] resp = 2'b00);
+  // ─────────────────────────────────────────────
+  // High-level Read: recv_archn + send_rchn (all beats)
+  // Symmetric with Master's read_burst()
+  // ─────────────────────────────────────────────
+  task automatic respond_read_burst(ref logic [DATA_WIDTH-1:0] data[], input logic [1:0] resp = 2'b00);
     logic [ADDR_WIDTH-1:0] addr;
     logic [ID_WIDTH-1:0] id;
     logic [LEN_WIDTH-1:0] len;
@@ -368,7 +409,7 @@ class Axi4FullSlaveVIP #(
     else
       $fatal(
           1,
-          "%s respond_read data array too short (need %0d, got %0d)",
+          "%s respond_read_burst data array too short (need %0d, got %0d)",
           vip_name,
           beat_count,
           data.size()
@@ -376,6 +417,54 @@ class Axi4FullSlaveVIP #(
 
     send_rchn(data, id, resp);
 
+  endtask
+
+  // ─────────────────────────────────────────────
+  // Single-beat Read: recv_archn + send_rchn (1 beat)
+  // Symmetric with Master's read()
+  // ─────────────────────────────────────────────
+  task automatic respond_read_single(output logic [DATA_WIDTH-1:0] data, input logic [1:0] resp = 2'b00);
+    logic [ADDR_WIDTH-1:0] addr;
+    logic [ID_WIDTH-1:0] id;
+    logic [LEN_WIDTH-1:0] len;
+    logic [SIZE_WIDTH-1:0] size;
+    logic [BURST_WIDTH-1:0] burst;
+    logic [PROT_WIDTH-1:0] prot;
+    logic [DATA_WIDTH-1:0] data_arr[];
+    int unsigned beat_count;
+
+    data_arr = new[1];
+
+    recv_archn(addr, id, len, size, burst, prot);
+    beat_count = int'(len) + 1;
+
+    assert (data_arr.size() >= beat_count)
+    else
+      $fatal(
+          1,
+          "%s respond_read_single data array too short (need %0d, got %0d)",
+          vip_name,
+          beat_count,
+          data_arr.size()
+      );
+
+    data_arr[0] = data;
+    send_rchn(data_arr, id, resp);
+    data = data_arr[0];
+  endtask
+
+  // ============ Deprecated wrappers (backward compatible) ============
+
+  // Deprecated: use expect_write_burst() instead
+  task automatic expect_write_and_respond(ref logic [DATA_WIDTH-1:0] data[],
+                                          ref logic [STRB_WIDTH-1:0] strb[],
+                                          input logic [1:0] resp = 2'b00);
+    expect_write_burst(data, strb, resp);
+  endtask
+
+  // Deprecated: use respond_read_burst() instead
+  task automatic respond_read(ref logic [DATA_WIDTH-1:0] data[], input logic [1:0] resp = 2'b00);
+    respond_read_burst(data, resp);
   endtask
 
 endclass

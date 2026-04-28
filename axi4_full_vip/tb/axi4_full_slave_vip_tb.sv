@@ -94,7 +94,7 @@ module axi4_full_slave_vip_tb;
           .addr(32'h1000), .data(wr_data), .strb(wr_strb),
           .id(4'd0), .resp(resp)
         );
-        slave_vip.expect_write_and_respond(.data(wr_data), .strb(wr_strb), .resp(2'b00));
+        slave_vip.expect_write_burst(.data(wr_data), .strb(wr_strb), .resp(2'b00));
       join
 
       assert(resp == 2'b00) else $error("Write response mismatch resp=%0h", resp);
@@ -104,7 +104,7 @@ module axi4_full_slave_vip_tb;
       slave_rd_data[0] = 32'hDEADBEEF;
       fork
         master_vip.read(.addr(32'h1000), .data(rd_data[0]), .resp(resp), .id(4'd0));
-        slave_vip.respond_read(.data(slave_rd_data), .resp(2'b00));
+        slave_vip.respond_read_burst(.data(slave_rd_data), .resp(2'b00));
       join
 
       assert(resp == 2'b00) else $error("Read response mismatch resp=%0h", resp);
@@ -139,7 +139,7 @@ module axi4_full_slave_vip_tb;
           .addr(32'h2000), .data(wr_data), .strb(wr_strb),
           .id(4'd5), .burst(2'b01), .resp(wr_resp)
         );
-        slave_vip.expect_write_and_respond(.data(wr_data), .strb(wr_strb), .resp(2'b00));
+        slave_vip.expect_write_burst(.data(wr_data), .strb(wr_strb), .resp(2'b00));
       join
 
       assert(wr_resp == 2'b00) else $error("Burst write response mismatch resp=%0h", wr_resp);
@@ -154,7 +154,7 @@ module axi4_full_slave_vip_tb;
           .addr(32'h2000), .beat_count(4),
           .data(rd_data), .resp(rd_resp), .id(4'd5), .burst(2'b01)
         );
-        slave_vip.respond_read(.data(slave_rd_data), .resp(2'b00));
+        slave_vip.respond_read_burst(.data(slave_rd_data), .resp(2'b00));
       join
 
       for (int i = 0; i < 4; i++) begin
@@ -187,7 +187,7 @@ module axi4_full_slave_vip_tb;
           .addr(32'h3000), .data(wr_data), .strb(wr_strb),
           .id(4'd0), .resp(resp)
         );
-        slave_vip.expect_write_and_respond(.data(wr_data), .strb(wr_strb), .resp(2'b10));
+        slave_vip.expect_write_burst(.data(wr_data), .strb(wr_strb), .resp(2'b10));
       join
 
       assert(resp == 2'b10) else $error("Expected SLVERR (2) but got resp=%0h", resp);
@@ -197,7 +197,7 @@ module axi4_full_slave_vip_tb;
       slave_rd_data[0] = '0;
       fork
         master_vip.read(.addr(32'h3000), .data(rd_data[0]), .resp(resp), .id(4'd0));
-        slave_vip.respond_read(.data(slave_rd_data), .resp(2'b10));
+        slave_vip.respond_read_burst(.data(slave_rd_data), .resp(2'b10));
       join
 
       assert(resp == 2'b10) else $error("Expected SLVERR (2) on read but got resp=%0h", resp);
@@ -227,7 +227,7 @@ module axi4_full_slave_vip_tb;
           .addr(32'h4000), .data(wr_data), .strb(wr_strb),
           .id(4'd1), .resp(resp)
         );
-        slave_vip.expect_write_and_respond(.data(wr_data), .strb(wr_strb), .resp(2'b00));
+        slave_vip.expect_write_burst(.data(wr_data), .strb(wr_strb), .resp(2'b00));
       join
 
       assert(resp == 2'b00) else $error("Backpressure write response mismatch resp=%0h", resp);
@@ -258,7 +258,7 @@ module axi4_full_slave_vip_tb;
 
       fork
         master_vip.read(.addr(32'h5000), .data(rd_data[0]), .resp(resp), .id(4'd2));
-        slave_vip.respond_read(.data(slave_rd_data), .resp(2'b00));
+        slave_vip.respond_read_burst(.data(slave_rd_data), .resp(2'b00));
       join
 
       assert(resp == 2'b00) else $error("Backpressure read response mismatch resp=%0h", resp);
@@ -275,10 +275,11 @@ module axi4_full_slave_vip_tb;
     begin
       logic [1:0]            wr_resp;
       logic [DATA_WIDTH-1:0] rd_data[4];
-      logic [1:0]            rd_resp[];
+      logic [1:0]            rd_resp[4];
       logic [DATA_WIDTH-1:0] wr_data[];
       logic [STRB_WIDTH-1:0] wr_strb[];
-      logic [DATA_WIDTH-1:0] rd_buf[];
+      logic [ID_WIDTH-1:0]   rd_id;
+      logic                  rd_last;
 
       $display("\n--- Test 6: Multiple Outstanding Transactions ---");
 
@@ -297,15 +298,13 @@ module axi4_full_slave_vip_tb;
           end
           begin
             automatic int idx = i;
-            slave_vip.expect_write_and_respond(.data(wr_data), .strb(wr_strb), .resp(2'b00));
+            slave_vip.expect_write_burst(.data(wr_data), .strb(wr_strb), .resp(2'b00));
           end
         join
         assert(wr_resp == 2'b00) else $error("Outstanding write %0d response mismatch", i);
       end
 
       // Read back with outstanding AR requests
-      rd_buf = new[1];
-      rd_resp = new[1];
       fork
         begin
           for (int i = 0; i < 4; i++) begin
@@ -317,13 +316,12 @@ module axi4_full_slave_vip_tb;
             automatic logic [DATA_WIDTH-1:0] slave_rd_buf[];
             slave_rd_buf = new[1];
             slave_rd_buf[0] = 32'h11111111 * (i + 1);
-            slave_vip.respond_read(.data(slave_rd_buf), .resp(2'b00));
+            slave_vip.respond_read_burst(.data(slave_rd_buf), .resp(2'b00));
           end
         end
         begin
           for (int i = 0; i < 4; i++) begin
-            master_vip.recv_rchn(.data(rd_buf), .resp(rd_resp), .id(i));
-            rd_data[i] = rd_buf[0];
+            master_vip.recv_rchn(.data(rd_data[i]), .resp(rd_resp[i]), .id(rd_id), .last(rd_last));
           end
         end
       join
@@ -365,7 +363,7 @@ module axi4_full_slave_vip_tb;
           .addr(32'h7000), .data(wr_data), .strb(wr_strb),
           .id(4'd7), .burst(2'b01), .resp(wr_resp)
         );
-        slave_vip.expect_write_and_respond(.data(wr_data), .strb(wr_strb), .resp(2'b00));
+        slave_vip.expect_write_burst(.data(wr_data), .strb(wr_strb), .resp(2'b00));
       join
 
       assert(wr_resp == 2'b00) else $error("Mixed backpressure write response mismatch resp=%0h", wr_resp);
@@ -382,7 +380,7 @@ module axi4_full_slave_vip_tb;
           .addr(32'h7000), .beat_count(3),
           .data(rd_data), .resp(rd_resp), .id(4'd7), .burst(2'b01)
         );
-        slave_vip.respond_read(.data(slave_rd_data), .resp(2'b00));
+        slave_vip.respond_read_burst(.data(slave_rd_data), .resp(2'b00));
       join
 
       for (int i = 0; i < 3; i++) begin
