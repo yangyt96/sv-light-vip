@@ -22,8 +22,8 @@
 // Features:
 //   - Backpressure on AW/W/AR channels (stall before ready)
 //   - Backpressure on B/R channels (stall before valid)
-//   - Write transaction capture (expect_write)
-//   - Read transaction response (respond_read)
+//   - Write transaction capture (write_resp_burst/write_resp_single)
+//   - Read transaction response (read_resp_burst/read_resp_single)
 //   - Configurable response (OKAY/SLVERR/DECERR)
 
 class Axi4FullSlaveVIP #(
@@ -484,57 +484,6 @@ class Axi4FullSlaveVIP #(
 
     apply_stall();
     send_rchn(data, id, resp, 1'b1);
-  endtask
-
-  // ============ Deprecated wrappers (backward compatible) ============
-
-  // Deprecated: use write_resp_burst() instead
-  task automatic expect_write_and_respond(ref logic [DATA_WIDTH-1:0] data[],
-                                          ref logic [STRB_WIDTH-1:0] strb[],
-                                          input logic [1:0] resp = 2'b00);
-    write_resp_burst(data, strb, resp);
-  endtask
-
-  // Deprecated: use read_resp_burst() instead
-  task automatic respond_read(ref logic [DATA_WIDTH-1:0] data[], input logic [1:0] resp = 2'b00);
-    read_resp_burst(data, resp);
-  endtask
-
-  // Deprecated: use write_resp_burst()/write_resp_single() instead
-  task automatic expect_write(
-      output logic [ADDR_WIDTH-1:0] addr, ref logic [DATA_WIDTH-1:0] data[],
-      ref logic [STRB_WIDTH-1:0] strb[], output logic [ID_WIDTH-1:0] id,
-      output logic [LEN_WIDTH-1:0] len, output logic [SIZE_WIDTH-1:0] size,
-      output logic [BURST_WIDTH-1:0] burst, output logic [PROT_WIDTH-1:0] prot,
-      output logic [CACHE_WIDTH-1:0] cache, output logic [LOCK_WIDTH-1:0] lock,
-      output logic [QOS_WIDTH-1:0] qos, output logic [REGION_WIDTH-1:0] region,
-      output logic [AWUSER_WIDTH-1:0] awuser);
-    int unsigned                   beat_count;
-    logic        [ DATA_WIDTH-1:0] beat_data;
-    logic        [ STRB_WIDTH-1:0] beat_strb;
-    bit                            beat_last;
-    logic        [WUSER_WIDTH-1:0] wuser;
-
-    wait_reset_release();
-    recv_awchn(addr, id, len, size, burst, prot, cache, lock, qos, region, awuser);
-    beat_count = int'(len) + 1;
-
-    data = new[beat_count];
-    strb = new[beat_count];
-
-    for (int i = 0; i < beat_count; i++) begin
-      recv_wchn(beat_data, beat_strb, beat_last, wuser);
-
-      data[i] = beat_data;
-      strb[i] = beat_strb;
-      if (beat_last && i < (beat_count - 1)) begin
-        $warning("%s WLAST asserted early at beat %0d/%0d", vip_name, i, beat_count);
-      end
-    end
-
-    if (!beat_last) begin
-      $warning("%s WLAST not asserted at final beat %0d", vip_name, beat_count - 1);
-    end
   endtask
 
 endclass
