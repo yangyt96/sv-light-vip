@@ -325,43 +325,30 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Read Data Channel - Receive read data phase
-  task recv_rchn(ref logic [DATA_WIDTH-1:0] data[], ref logic [1:0] resp[],
-                 input logic [ID_WIDTH-1:0] id = '0);
+  task recv_rchn(ref logic [DATA_WIDTH-1:0] data, ref logic [1:0] resp,
+                 ref logic [ID_WIDTH-1:0] id,
+                 ref logic last);
     int unsigned beat_count;
     int unsigned beat_idx;
     int unsigned cycles;
 
-    beat_count = data.size();
-    assert (beat_count > 0)
-    else $fatal(1, "%s recv_rchn called with no data beats", vip_name);
-    assert (resp.size() >= beat_count)
-    else $fatal(1, "%s recv_rchn resp array too short", vip_name);
-
-    apply_pause();
-
     vif.rready <= 1;
-    for (beat_idx = 0; beat_idx < beat_count; beat_idx++) begin
-      cycles = 0;
-      do begin
-        @(posedge vif.aclk);
-        cycles++;
-        if (cycles >= timeout_cycles) begin
-          $fatal(1, "%s timed out waiting for AXI4 read data", vip_name);
-        end
-      end while (!vif.rvalid);
-      data[beat_idx] = vif.rdata;
-      resp[beat_idx] = vif.rresp;
-      assert (vif.rid == id)
-      else $error("%s read ID mismatch exp=%0d got=%0d", vip_name, id, vif.rid);
-      assert (vif.rlast == (beat_idx == (beat_count - 1)))
-      else $error("%s rlast mismatch beat=%0d beats=%0d", vip_name, beat_idx, beat_count);
-    end
+    cycles = 0;
+    do begin
+      @(posedge vif.aclk);
+      cycles++;
+      if (cycles >= timeout_cycles) begin
+        $fatal(1, "%s timed out waiting for AXI4 read data", vip_name);
+      end
+    end while (!vif.rvalid);
+    data = vif.rdata;
+    resp = vif.rresp;
+    id = vif.rid;
+    last = vif.rlast;
 
     $display("[%0t] %s RX R beats=%0d id=%0d", $time, vip_name, beat_count, id);
 
     vif.rready <= 0;
-    // @(posedge vif.aclk);
-
   endtask
 
   task read_burst(
@@ -370,12 +357,28 @@ class Axi4FullMasterVIP #(
       input logic [SIZE_WIDTH-1:0] size = $clog2(STRB_WIDTH),
       input logic [BURST_WIDTH-1:0] burst = 2'b01, input logic [PROT_WIDTH-1:0] prot = 3'b000);
 
+    int unsigned beat_idx;
+    logic act_last;
+    logic [ID_WIDTH-1:0] act_id;
+
     assert (beat_count > 0)
     else $fatal(1, "%s read_burst called with no beats", vip_name);
+    assert (resp.size() >= beat_count)
+    else $fatal(1, "%s recv_rchn resp array too short", vip_name);
 
     // Call the two channel APIs in sequence
     send_archn(addr, beat_count, id, size, burst, prot);
-    recv_rchn(data, resp, id);
+    for(beat_idx=0; beat_idx < beat_count; beat_idx++) begin
+      recv_rchn(data[beat_idx], resp[beat_idx], act_id, act_last);
+
+          assert (act_id == id)
+    else $error("%s read ID mismatch exp=%0d got=%0d", vip_name, id, vif.rid);
+
+              assert (act_last == (beat_idx == (beat_count - 1)))
+    else $error("%s rlast mismatch beat=%0d beats=%0d", vip_name, beat_idx, beat_count);
+    end
+
+
   endtask
 
 endclass

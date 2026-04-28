@@ -287,22 +287,22 @@ module axi4_full_vip_tb;
     `TEST_CASE("Multiple Outstanding Writes")
     begin
       logic [1:0] resp[4];
-      logic [31:0] data[1];
-      logic [3:0]  strb[1];
+      logic [DATA_WIDTH-1:0] wdata;
+      logic [STRB_WIDTH-1:0] wstrb;
       $display("\n--- Test 7: Multiple Outstanding Writes ---");
       fork
         begin
-          master_vip.send_awchn(.addr(32'h6000), .id(4'd0));
-          master_vip.send_awchn(.addr(32'h6004), .id(4'd1));
-          master_vip.send_awchn(.addr(32'h6008), .id(4'd2));
-          master_vip.send_awchn(.addr(32'h600C), .id(4'd3));
+          master_vip.send_awchn(.addr(32'h6000), .beat_count(1), .id(4'd0));
+          master_vip.send_awchn(.addr(32'h6004), .beat_count(1), .id(4'd1));
+          master_vip.send_awchn(.addr(32'h6008), .beat_count(1), .id(4'd2));
+          master_vip.send_awchn(.addr(32'h600C), .beat_count(1), .id(4'd3));
         end
 
         begin
-          strb[0] = 4'hF;
           for(int i = 0; i < 4; i++) begin
-            data[0] = 32'h11111111 * (i+1);
-            master_vip.send_wchn(.data(data[0]), .strb(strb[0]), .last(0));
+            wdata = 32'h11111111 * (i+1);
+            wstrb = 4'hF;
+            master_vip.send_wchn(.data(wdata), .strb(wstrb), .last(1'b1));
           end
         end
 
@@ -319,40 +319,37 @@ module axi4_full_vip_tb;
       end
 
       check_single_read(32'h6000, 32'h11111111, 4'd0);
-      check_single_read(32'h6004, 32'h22222222, 4'd1);
-      check_single_read(32'h6008, 32'h33333333, 4'd2);
+      check_single_read(32'h6008, 32'h33333333, 4'd1);
+      check_single_read(32'h6004, 32'h22222222, 4'd2);
       check_single_read(32'h600C, 32'h44444444, 4'd3);
     end
 
     `TEST_CASE("Multiple Outstanding Reads")
     begin
       logic [DATA_WIDTH-1:0] rd_data[4];
-      logic [DATA_WIDTH-1:0] data[];
       logic [1:0] rd_resp[4];
-      logic [1:0] resp[];
-      data = new[1];
-      resp = new[1];
+      logic [1:0] wr_resp;
+      logic [ID_WIDTH-1:0] rd_id;
+      logic rd_last;
       $display("\n--- Test 8: Multiple Outstanding Reads ---");
 
-      master_vip.write(.addr(32'h6000), .data(32'h11111111), .resp(resp[0]));
-      master_vip.write(.addr(32'h6004), .data(32'h22222222), .resp(resp[0]));
-      master_vip.write(.addr(32'h6008), .data(32'h33333333), .resp(resp[0]));
-      master_vip.write(.addr(32'h600C), .data(32'h44444444), .resp(resp[0]));
+      master_vip.write(.addr(32'h6000), .data(32'h11111111), .resp(wr_resp));
+      master_vip.write(.addr(32'h6004), .data(32'h22222222), .resp(wr_resp));
+      master_vip.write(.addr(32'h6008), .data(32'h33333333), .resp(wr_resp));
+      master_vip.write(.addr(32'h600C), .data(32'h44444444), .resp(wr_resp));
 
       fork
 
         begin
-          master_vip.send_archn(.addr(32'h6000), .id(4'd0));
-          master_vip.send_archn(.addr(32'h6004), .id(4'd1));
-          master_vip.send_archn(.addr(32'h6008), .id(4'd2));
-          master_vip.send_archn(.addr(32'h600C), .id(4'd3));
+          master_vip.send_archn(.addr(32'h6000), .beat_count(1), .id(4'd0));
+          master_vip.send_archn(.addr(32'h6004), .beat_count(1), .id(4'd1));
+          master_vip.send_archn(.addr(32'h6008), .beat_count(1), .id(4'd2));
+          master_vip.send_archn(.addr(32'h600C), .beat_count(1), .id(4'd3));
         end
 
         begin
           for(int i = 0; i < 4; i++) begin
-            master_vip.recv_rchn(.data(data), .resp(resp), .id(i));
-            rd_data[i] = data[0];
-            rd_resp[i] = resp[0];
+            master_vip.recv_rchn(.data(rd_data[i]), .resp(rd_resp[i]), .id(rd_id), .last(rd_last));
           end
         end
 
