@@ -2,6 +2,7 @@
 
 > 最后更新：2026-04-28
 > 分析范围：全部 8 个 VIP（APB、AXI4-Lite、AXI4-Full、AXI4-Stream、UART、SPI、I2C、I2S）
+> 最后修改：G 组统一 apply_pause() 分离 wait_reset_release() — commit 9679062
 
 ---
 
@@ -350,47 +351,51 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 
 ## 七、完成状态汇总
 
-### ✅ 已完成（29 项）
+### ✅ 已完成（38 项）
 
-| 编号 | 项目 | 优先级 |
-|------|------|--------|
-| 2.3 | 完善 `.gitignore` | 低 |
-| 2.4 | 统一代码风格 | 中 |
-| 2.5 | 增加参数化范围检查 | 低 |
-| 3.1 | 统一 mem_vip 包含方式 | 中 |
-| 3.2 | 简化 AXI4-Full 参数传递 | 中 |
-| 3.4 | APB Slave 增加 backpressure 支持 | 低 |
-| 3.5 | I2C `tri1` 仿真警告分析 | 低 |
-| 3.6 | APB Master `apply_pause()` 分离 `wait_reset_release()` | 中 |
-| 3.7 | APB Slave `wait_access()` 移除 `wait_reset_release()` | 中 |
-| 4.1 | 增加回归测试脚本 | 中 |
-| 4.2 | 增加 Makefile | 低 |
-| 4.3 | CI 改进 | 中 |
-| 5.1 | UART baud rate 配置 | 中 |
-| 5.2 | UART 奇偶校验支持 | 低 |
-| 5.3 | I2C 总线冲突检测 | 低 |
-| 5.4 | SPI CS 异常测试 | 低 |
-| 5.5 | AXI4-Stream 侧信道测试 | 低 |
-| 5.6 | I2S 测试覆盖增强 | 低 |
-| 5.7 | APB mem_vip 测试覆盖 | 低 |
-| 5.8 | I2C 时钟拉伸测试增强 | 低 |
-| 5.9 | AXI4-Full Slave VIP | 低 |
-| 5.10 | APB 测试 `apb_wait_q` 初始化 | 低 |
-| 5.11 | AXI4-Lite Master VIP 重构（对齐 AXI4-Full 架构） | 中 |
-| 5.12 | APB Master/Slave 添加 `clear_outputs()` 方法 | 中 |
-| 5.13 | 其他 VIP (SPI/I2C/UART/I2S) 添加 `clear_outputs()` | 中 |
-| 5.14 | APB Master/Slave 事务方法末尾调用 `idle()` | 低 |
-| 5.15 | AXI4-Lite Master 信号驱动优化 | 中 |
-| 5.16 | API 命名规范化 | 中 |
-| 6.1 | API 快速参考文档 | 低 |
-| 6.3 | README VIP 详细说明 | 低 |
+- [x] **2.3** — 完善 `.gitignore`（低）
+- [x] **2.4** — 统一代码风格（中）
+- [x] **2.5** — 增加参数化范围检查（低）
+- [x] **3.1** — 统一 mem_vip 包含方式（中）
+- [x] **3.2** — 简化 AXI4-Full 参数传递（中）
+- [x] **3.4** — APB Slave 增加 backpressure 支持（低）
+- [x] **3.5** — I2C `tri1` 仿真警告分析（低）
+- [x] **3.6** — APB Master `apply_pause()` 分离 `wait_reset_release()`（中）
+- [x] **3.7** — APB Slave `wait_access()` 移除 `wait_reset_release()`（中）
+- [x] **4.1** — 增加回归测试脚本（中）
+- [x] **4.2** — 增加 Makefile（低）
+- [x] **4.3** — CI 改进（中）
+- [x] **5.1** — UART baud rate 配置（中）
+- [x] **5.2** — UART 奇偶校验支持（低）
+- [x] **5.3** — I2C 总线冲突检测（低）
+- [x] **5.4** — SPI CS 异常测试（低）
+- [x] **5.5** — AXI4-Stream 侧信道测试（低）
+- [x] **5.6** — I2S 测试覆盖增强（低）
+- [x] **5.7** — APB mem_vip 测试覆盖（低）
+- [x] **5.8** — I2C 时钟拉伸测试增强（低）
+- [x] **5.9** — AXI4-Full Slave VIP（低）
+- [x] **5.10** — APB 测试 `apb_wait_q` 初始化（低）
+- [x] **5.11** — AXI4-Lite Master VIP 重构（对齐 AXI4-Full 架构）（中）
+- [x] **5.12** — APB Master/Slave 添加 `clear_outputs()` 方法（中）
+- [x] **5.13** — 其他 VIP (SPI/I2C/UART/I2S) 添加 `clear_outputs()`（中）
+- [x] **5.14** — APB Master/Slave 事务方法末尾调用 `idle()`（低）
+- [x] **5.15** — AXI4-Lite Master 信号驱动优化（中）
+- [x] **5.16** — API 命名规范化（中）
+- [x] **6.1** — API 快速参考文档（低）
+- [x] **6.3** — README VIP 详细说明（低）
+- [x] **G1** — AXI4-Lite Master `apply_pause()` 分离 `wait_reset_release()`（中）
+- [x] **G2** — AXI4-Full Master `apply_pause()` 分离 `wait_reset_release()`（中）
+- [x] **G3** — SPI Master/Slave 分离 `wait_reset_release()`（中）
+- [x] **G4** — UART TX `send_frame()` 分离 `wait_reset_release()`（中）
+- [x] **G5** — I2S TX `send_frame()` 分离 `wait_reset_release()`（中）
+- [x] **G6** — I2C Master 添加 `enable_pause_generator` / `apply_pause()`（中）
+- [x] **G7** — I2C Slave `wait_start()` 分离 `wait_reset_release()`（中）
+- [x] **G8** — I2S RX 添加 `wait_reset_release()`（中）
 
 ### 📋 待完成（2 项，按优先级排序）
 
-| 编号 | 项目 | 优先级 |
-|------|------|--------|
-| 4.4 | Verible lint 规则优化 | 低 |
-| 6.2 | 贡献指南 | 低 |
+- [ ] **4.4** — Verible lint 规则优化（低）
+- [ ] **6.2** — 贡献指南（低）
 
 ### 🔮 未来改进建议（Phase 7 遗留，未实现）
 
@@ -398,43 +403,58 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 
 #### F 组：为其他 VIP 添加 `idle()` 方法（低优先级）
 
-| 编号 | 项目 | 说明 |
-|------|------|------|
-| F1 | AXI4-Lite Slave 添加 `idle()` | 已有 `clear_outputs()`，缺少 `idle()` 方法 |
-| F2 | AXI4-Full Master 添加 `idle()` | 已有 `clear_outputs()`，缺少 `idle()` 方法 |
-| F3 | AXI4-Full Slave 添加 `idle()` | 已有 `clear_outputs()`，缺少 `idle()` 方法 |
-| F4 | AXI4-Stream Master 添加 `idle()` | 已有 `clear_outputs()`，缺少 `idle()` 方法 |
-| F5 | AXI4-Stream Slave 添加 `idle()` | 已有 `clear_outputs()`，缺少 `idle()` 方法 |
+- [ ] **F1** — AXI4-Lite Slave 添加 `idle()`：已有 `clear_outputs()`，缺少 `idle()` 方法
+- [ ] **F2** — AXI4-Full Master 添加 `idle()`：已有 `clear_outputs()`，缺少 `idle()` 方法
+- [ ] **F3** — AXI4-Full Slave 添加 `idle()`：已有 `clear_outputs()`，缺少 `idle()` 方法
+- [ ] **F4** — AXI4-Stream Master 添加 `idle()`：已有 `clear_outputs()`，缺少 `idle()` 方法
+- [ ] **F5** — AXI4-Stream Slave 添加 `idle()`：已有 `clear_outputs()`，缺少 `idle()` 方法
 
-#### G 组：统一 `apply_pause()` 分离 `wait_reset_release()`（中优先级）
+#### G 组：统一 `apply_pause()` 分离 `wait_reset_release()`（中优先级） ✅ 已完成
 
-| 编号 | 项目 | 说明 |
-|------|------|------|
-| G1 | AXI4-Lite Master `apply_pause()` 分离 | 当前 `apply_pause()` 仍包含 `wait_reset_release()`，与 APB Master 不一致 |
-| G2 | AXI4-Full Master `apply_pause()` 分离 | 当前 `apply_pause()` 仍包含 `wait_reset_release()`，与 APB Master 不一致 |
-| G3 | SPI Master/Slave 分离 `wait_reset_release()` | `apply_pause()` 和 `transfer()` 中内联了复位等待 |
-| G4 | UART TX `transmit()` 分离 `wait_reset_release()` | 内联了复位等待 |
-| G5 | I2S TX `transmit()` 分离 `wait_reset_release()` | 内联了复位等待 |
+**commit**: [`9679062`](https://github.com/yyangtse/sv-light-vip/commit/9679062)
+
+- [x] **G1** — AXI4-Lite Master `apply_pause()` 分离：[`axi4_lite_master_vip.sv`](axi4_lite_vip/sim/axi4_lite_master_vip.sv) — `apply_pause()` 只做随机暂停，新增独立 `wait_reset_release()`
+- [x] **G2** — AXI4-Full Master `apply_pause()` 分离：[`axi4_full_master_vip.sv`](axi4_full_vip/sim/axi4_full_master_vip.sv) — `apply_pause()` 只做随机暂停，新增独立 `wait_reset_release()`
+- [x] **G3** — SPI Master/Slave 分离 `wait_reset_release()`：[`spi_master_vip.sv`](spi_vip/sim/spi_master_vip.sv)、[`spi_slave_vip.sv`](spi_vip/sim/spi_slave_vip.sv) — 新增独立 `wait_reset_release()`，高层面包开头调用
+- [x] **G4** — UART TX `send_frame()` 分离 `wait_reset_release()`：[`uart_tx_vip.sv`](uart_vip/sim/uart_tx_vip.sv) — 新增独立 `wait_reset_release()`，`send_frame()` 开头调用
+- [x] **G5** — I2S TX `send_frame()` 分离 `wait_reset_release()`：[`i2s_tx_vip.sv`](i2s_vip/sim/i2s_tx_vip.sv) — 新增独立 `wait_reset_release()` 和 `apply_pause()`
+- [x] **G6** — I2C Master 添加 `enable_pause_generator` / `apply_pause()`：[`i2c_master_vip.sv`](i2c_vip/sim/i2c_master_vip.sv) — 新增 `enable_pause_generator`、`configure_pause_generator()`、`apply_pause()`
+- [x] **G7** — I2C Slave `wait_start()` 分离 `wait_reset_release()`：[`i2c_slave_vip.sv`](i2c_vip/sim/i2c_slave_vip.sv) — `wait_start()` 不再调用 `wait_reset_release()`，新增独立 task
+- [x] **G8** — I2S RX 添加 `wait_reset_release()`：[`i2s_rx_vip.sv`](i2s_vip/sim/i2s_rx_vip.sv) — 新增独立 `wait_reset_release()`，`recv_frame()` 开头调用
+
+**验证结果**：
+- `make lint` — 35 文件全部通过
+- `make format-check` — 35 文件全部通过
+- `make test-apb_vip` — 14/14 通过
+- `make test-spi_vip` — 12/12 通过
+- `make test-i2c_vip` — 11/11 通过
+- `make test-uart_vip` — 4/4 通过
+- `make test-i2s_vip` — 4/4 通过
+- `make test-axi4_lite_vip` — 9/9 通过
+- `make test-axi4_full_vip` — 15/15 通过
+- `make test-axi4_stream_vip` — 4/4 通过
+- `make test-apb_mem_vip` — 4/4 通过
+- `make test-axi4_lite_mem_vip` — 4/4 通过
+- `make test-axi4_full_mem_vip` — 8/8 通过
+- **总计：109 测试用例全部通过**
 
 #### H 组：事务方法末尾调用 `idle()`（低优先级）
 
-| 编号 | 项目 | 说明 |
-|------|------|------|
-| H1 | SPI Master `transfer()` 末尾调用 `idle()` | 末尾手动清零 `cs_n/mosi` |
-| H2 | SPI Slave `transfer()` 末尾调用 `idle()` | 末尾手动清零 `miso` |
-| H3 | I2C Master 事务末尾调用 `idle()` | 无显式清理 |
-| H4 | I2C Slave 事务末尾调用 `idle()` | 无显式清理 |
-| H5 | UART TX `transmit()` 末尾调用 `idle()` | 无显式清理 |
-| H6 | I2S TX `transmit()` 末尾调用 `idle()` | 末尾手动清零 `ws/sd` |
-| H7 | AXI4-Lite Master/Slave 事务末尾调用 `idle()` | 无 `idle()` 方法 |
-| H8 | AXI4-Full Master/Slave 事务末尾调用 `idle()` | 无 `idle()` 方法 |
-| H9 | AXI4-Stream Master/Slave 事务末尾调用 `idle()` | 无 `idle()` 方法 |
+- [ ] **H1** — SPI Master `transfer()` 末尾调用 `idle()`：末尾手动清零 `cs_n/mosi`
+- [ ] **H2** — SPI Slave `transfer()` 末尾调用 `idle()`：末尾手动清零 `miso`
+- [ ] **H3** — I2C Master 事务末尾调用 `idle()`：无显式清理
+- [ ] **H4** — I2C Slave 事务末尾调用 `idle()`：无显式清理
+- [ ] **H5** — UART TX `transmit()` 末尾调用 `idle()`：无显式清理
+- [ ] **H6** — I2S TX `transmit()` 末尾调用 `idle()`：末尾手动清零 `ws/sd`
+- [ ] **H7** — AXI4-Lite Master/Slave 事务末尾调用 `idle()`：无 `idle()` 方法
+- [ ] **H8** — AXI4-Full Master/Slave 事务末尾调用 `idle()`：无 `idle()` 方法
+- [ ] **H9** — AXI4-Stream Master/Slave 事务末尾调用 `idle()`：无 `idle()` 方法
 
 ---
 
 ## 八、总结
 
-经过全面重新审视，这个 repo 的整体质量良好，代码风格统一，测试覆盖合理。已完成 **29 项**改进，剩余 **2 项**待完成（均为低优先级）。`clean.py` 已被移除，其功能由 `make clean` 替代。
+经过全面重新审视，这个 repo 的整体质量良好，代码风格统一，测试覆盖合理。已完成 **38 项**改进，剩余 **2 项**待完成（均为低优先级）。`clean.py` 已被移除，其功能由 `make clean` 替代。
 
 **Phase 7 新增改进（6 项）**：
 1. **功能 C**：AXI4-Lite Master 信号驱动优化（5.15）
@@ -444,10 +464,15 @@ UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
 5. **功能 D3**：AXI4-Stream Slave 已有 `clear_outputs()` — 确认
 6. **I 组**：API 命名规范化（5.16）
 
+**G 组完成（commit [`9679062`](https://github.com/yyangtse/sv-light-vip/commit/9679062)）**：
+- 统一了所有 VIP 的 `apply_pause()` 实现：只做随机暂停，不包含 `wait_reset_release()`
+- 为所有缺少独立 `wait_reset_release()` 的 VIP 新增了该 task
+- 为 I2C Master 新增了 `enable_pause_generator` / `configure_pause_generator()` / `apply_pause()` 完整支持
+- 109 个测试用例全部通过
+
 **未来改进方向**（按优先级排序）：
-1. **G 组**：统一 `apply_pause()` 分离 `wait_reset_release()`（5 项，中优先级）
-2. **F 组**：为 AXI4-Lite/Full/Stream VIP 添加 `idle()` 方法（5 项，低优先级）
-3. **H 组**：事务方法末尾调用 `idle()`（9 项，低优先级）
+1. **F 组**：为 AXI4-Lite/Full/Stream VIP 添加 `idle()` 方法（5 项，低优先级）
+2. **H 组**：事务方法末尾调用 `idle()`（9 项，低优先级）
 
 **新发现的问题**（与上次分析相比新增）：
 1. 参数化范围检查缺失（2.5）
