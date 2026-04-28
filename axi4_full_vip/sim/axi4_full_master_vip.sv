@@ -182,7 +182,7 @@ class Axi4FullMasterVIP #(
 
   // Write Data Channel - Send write data phase
   task send_wchn(input logic [DATA_WIDTH-1:0] data, input logic [STRB_WIDTH-1:0] strb,
-                 input logic last);
+                 input logic last, input logic [WUSER_WIDTH-1:0] wuser = '0);
     int unsigned cycles;
 
     cycles = 0;
@@ -191,7 +191,7 @@ class Axi4FullMasterVIP #(
       vif.wdata  <= data;
       vif.wstrb  <= strb;
       vif.wlast  <= last;
-      vif.wuser  <= '0;
+      vif.wuser  <= wuser;
       vif.wvalid <= 1'b1;
       @(posedge vif.aclk);
       if (cycles >= timeout_cycles) begin
@@ -203,7 +203,8 @@ class Axi4FullMasterVIP #(
   endtask
 
   // Write Response Channel - Receive write response phase
-  task recv_bchn(output logic [1:0] resp);
+  task recv_bchn(output logic [1:0] resp, output logic [ID_WIDTH-1:0] id,
+                 output logic [BUSER_WIDTH-1:0] buser);
     int unsigned cycles;
 
     cycles = 0;
@@ -216,10 +217,12 @@ class Axi4FullMasterVIP #(
       end
     end while (!vif.bvalid);
 
-    resp = vif.bresp;
+    resp  = vif.bresp;
+    id    = vif.bid;
+    buser = vif.buser;
     vif.bready <= 1'b0;
 
-    $display("[%0t] %s RX B bresp=%0h", $time, vip_name, resp);
+    $display("[%0t] %s RX B id=%0d bresp=%0h buser=%0h", $time, vip_name, id, resp, buser);
   endtask
 
   // Read Address Channel - Send read address phase
@@ -290,12 +293,14 @@ class Axi4FullMasterVIP #(
   task write_req_single(input logic [ADDR_WIDTH-1:0] addr, input logic [DATA_WIDTH-1:0] data,
                         input logic [STRB_WIDTH-1:0] strb = '1, input logic [ID_WIDTH-1:0] id = '0,
                         output logic [1:0] resp);
+    logic [ID_WIDTH-1:0]   act_id;
+    logic [BUSER_WIDTH-1:0] act_buser;
     apply_pause();
     send_awchn(addr, 1, id);
     apply_pause();
     send_wchn(data, strb, 1'b1);
     apply_pause();
-    recv_bchn(resp);
+    recv_bchn(resp, act_id, act_buser);
   endtask
 
   // Single-beat read transaction (request side)
@@ -319,6 +324,8 @@ class Axi4FullMasterVIP #(
                        input logic [PROT_WIDTH-1:0] prot = 3'b000, output logic [1:0] resp);
     int unsigned beat_count;
     int unsigned beat_idx;
+    logic [ID_WIDTH-1:0]   act_id;
+    logic [BUSER_WIDTH-1:0] act_buser;
 
     beat_count = data.size();
     assert (beat_count > 0)
@@ -334,7 +341,7 @@ class Axi4FullMasterVIP #(
       send_wchn(data[beat_idx], strb[beat_idx], beat_idx == (beat_count - 1));
     end
     apply_pause();
-    recv_bchn(resp);
+    recv_bchn(resp, act_id, act_buser);
   endtask
 
   task read_req_burst(

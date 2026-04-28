@@ -285,9 +285,11 @@ module axi4_full_mem_vip_tb;
 
     `TEST_CASE("Multiple Outstanding Writes")
     begin
-      logic [1:0] resp[4];
+      logic [1:0]            resp[4];
       logic [DATA_WIDTH-1:0] wdata;
       logic [STRB_WIDTH-1:0] wstrb;
+      logic [ID_WIDTH-1:0]   b_id;
+      logic                  b_buser;  // BUSER_WIDTH=1
       $display("\n--- Test 7: Multiple Outstanding Writes ---");
       fork
         begin
@@ -306,10 +308,10 @@ module axi4_full_mem_vip_tb;
         end
 
         begin
-          master_vip.recv_bchn(.resp(resp[0]));
-          master_vip.recv_bchn(.resp(resp[1]));
-          master_vip.recv_bchn(.resp(resp[2]));
-          master_vip.recv_bchn(.resp(resp[3]));
+          master_vip.recv_bchn(.resp(resp[0]), .id(b_id), .buser(b_buser));
+          master_vip.recv_bchn(.resp(resp[1]), .id(b_id), .buser(b_buser));
+          master_vip.recv_bchn(.resp(resp[2]), .id(b_id), .buser(b_buser));
+          master_vip.recv_bchn(.resp(resp[3]), .id(b_id), .buser(b_buser));
         end
       join
 
@@ -501,7 +503,7 @@ module axi4_full_mem_vip_tb;
       // Write using channel-level APIs to verify awuser/wuser are driven
       master_vip.send_awchn(.addr(32'hA000), .beat_count(1), .id(4'd0));
       master_vip.send_wchn(.data(32'hA5A5A5A5), .strb(4'hF), .last(1'b1));
-      master_vip.recv_bchn(.resp(resp));
+      master_vip.recv_bchn(.resp(resp), .id(rd_id), .buser(rd_ruser));
       assert(resp == 2'b00) else $error("Sideband write response mismatch resp=%0h", resp);
 
       // Read using channel-level APIs to verify aruser is driven
