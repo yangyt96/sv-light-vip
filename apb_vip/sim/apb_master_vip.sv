@@ -110,10 +110,7 @@ class ApbMasterVIP #(
     $display("[%0t] %s WRITE addr=%h data=%h strb=%h slverr=%0b", $time, vip_name, addr, data,
              strb, slverr);
 
-    vif.psel    <= 1'b0;
-    vif.penable <= 1'b0;
-    vif.pwrite  <= 1'b0;
-    vif.pstrb   <= '0;
+    idle();
   endtask
 
   task automatic read(input logic [ADDR_WIDTH-1:0] addr, output logic [DATA_WIDTH-1:0] data,
@@ -138,8 +135,7 @@ class ApbMasterVIP #(
     slverr = vif.pslverr;
     $display("[%0t] %s READ  addr=%h data=%h slverr=%0b", $time, vip_name, addr, data, slverr);
 
-    vif.psel    <= 1'b0;
-    vif.penable <= 1'b0;
+    idle();
   endtask
 
 endclass

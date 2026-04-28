@@ -104,8 +104,7 @@ class ApbSlaveVIP #(
     vif.pready  <= 1'b1;
     @(posedge vif.pclk);
     @(negedge vif.pclk);
-    vif.pready  <= 1'b0;
-    vif.pslverr <= 1'b0;
+    idle();
 
     $display("[%0t] %s WRITE addr=%h data=%h strb=%h slverr=%0b stall=%0d", $time, vip_name, addr,
              data, strb, slverr, stall);
@@ -127,9 +126,7 @@ class ApbSlaveVIP #(
     vif.pready  <= 1'b1;
     @(posedge vif.pclk);
     @(negedge vif.pclk);
-    vif.pready  <= 1'b0;
-    vif.pslverr <= 1'b0;
-    vif.prdata  <= '0;
+    idle();
 
     $display("[%0t] %s READ  addr=%h data=%h slverr=%0b stall=%0d", $time, vip_name, addr,
              read_data, slverr, stall);
