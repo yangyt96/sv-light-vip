@@ -1,6 +1,6 @@
 # sv-light-vip 仓库分析报告
 
-> 最后更新：2026-04-27
+> 最后更新：2026-04-28
 > 分析范围：全部 8 个 VIP（APB、AXI4-Lite、AXI4-Full、AXI4-Stream、UART、SPI、I2C、I2S）
 
 ---
@@ -96,6 +96,25 @@
 ### 3.5 新增：I2C 接口使用 `tri1` 可能引起仿真警告（低优先级） ✅ 已完成
 
 **分析**：[`i2c_if.sv`](i2c_vip/sim/i2c_if.sv:6) 使用 `tri1` 是 I2C 总线建模的标准做法（多驱动线 + 上拉）。ModelSim ASE 的 `(vlog-2186)` 警告实际来自 SVA 断言（`assert property`），而非 `tri1` 本身。`tri1` + `1'bz` 驱动是正确且标准的 I2C 建模方式，保留不变，仅添加注释说明。
+
+### 3.6 新增：APB Master `apply_pause()` 分离 `wait_reset_release()`（中优先级） ✅ 已完成
+
+**问题**：APB Master 的 `apply_pause()` 同时包含 `wait_reset_release()` 和随机暂停，导致：
+- 每次调用 `apply_pause()` 都会等待复位释放，这在事务中间调用时是不必要的
+- 无法单独调用 `wait_reset_release()` 或 `apply_pause()`
+
+**修改**：
+- [`apb_master_vip.sv`](apb_vip/sim/apb_master_vip.sv:48)：`apply_pause()` 只做随机暂停，不再包含 `wait_reset_release()`
+- [`apb_master_vip.sv`](apb_vip/sim/apb_master_vip.sv:56)：新增独立的 `wait_reset_release()` task
+- [`apb_master_vip.sv`](apb_vip/sim/apb_master_vip.sv:90)：`write()` 和 `read()` 开头先调用 `wait_reset_release()`，再调用 `apply_pause()`
+
+### 3.7 新增：APB Slave `wait_access()` 移除 `wait_reset_release()`（中优先级） ✅ 已完成
+
+**问题**：APB Slave 的 `wait_access()` 内部调用了 `wait_reset_release()`，导致每次等待 APB 访问前都会等待复位释放，这在复位后的事务中是不必要的。
+
+**修改**：
+- [`apb_slave_vip.sv`](apb_vip/sim/apb_slave_vip.sv:75)：`wait_access()` 不再调用 `wait_reset_release()`，只等待 APB 访问条件
+- `wait_reset_release()` 由 testbench 在 `TEST_SUITE_SETUP` 中显式调用
 
 ---
 
@@ -213,6 +232,56 @@
 
 **修改内容**：在 `always_ff @(posedge clk)` 中添加了 `if (!rstn)` 复位分支，将所有 pipeline 寄存器在复位时清零。这确保了仿真开始时所有信号都有确定值，同时兼容 ModelSim 的 `always_ff` 单驱动源规则。
 
+### 5.11 新增：AXI4-Lite Master VIP 重构（对齐 AXI4-Full 架构）（中优先级） ✅ 已完成
+
+**实现**：将 AXI4-Lite Master VIP 重构为与 AXI4-Full Master VIP 一致的 channel-level API 架构：
+- 新增 `send_awchn()` / `send_wchn()` / `recv_bchn()` / `send_archn()` / `recv_rchn()` 五个 channel-level API
+- 新增 `write_req_single()` / `read_req_single()` 高层面包任务
+- 新增 `clear_outputs()` 方法
+- `apply_pause()` 仅在高层面包任务中调用，不在 channel-level API 中调用
+- 新增 AXI4-Lite Slave VIP（class-based），与 Master 对称的 channel-level API
+
+### 5.12 新增：APB Master/Slave 添加 `clear_outputs()` 方法（中优先级） ✅ 已完成
+
+**实现**：为 APB Master 和 Slave 添加了 `clear_outputs()` 方法，用于在复位释放后将所有输出信号驱动到默认状态：
+- [`apb_master_vip.sv`](apb_vip/sim/apb_master_vip.sv:37)：驱动 `paddr/psel/penable/pwrite/pwdata/pstrb/pprot` 到默认值
+- [`apb_slave_vip.sv`](apb_vip/sim/apb_slave_vip.sv:62)：驱动 `prdata/pready/pslverr` 到默认值
+- [`apb_vip_tb.sv`](apb_vip/tb/apb_vip_tb.sv)：在 `TEST_SUITE_SETUP` 中复位释放后调用 `clear_outputs()`
+
+### 5.13 新增：其他 VIP 添加 `clear_outputs()` 方法（中优先级） ✅ 已完成
+
+**实现**：为 SPI/I2C/UART/I2S VIP 添加了 `clear_outputs()` 方法：
+
+| VIP | 文件 | 输出信号 |
+|-----|------|----------|
+| SPI Master | [`spi_master_vip.sv`](spi_vip/sim/spi_master_vip.sv:63) | `sclk <= cpol`, `cs_n <= 1'b1`, `mosi <= 1'b0` |
+| SPI Slave | [`spi_slave_vip.sv`](spi_vip/sim/spi_slave_vip.sv:31) | `miso <= 1'b0` |
+| I2C Master | [`i2c_master_vip.sv`](i2c_vip/sim/i2c_master_vip.sv:22) | `master_scl_low <= 1'b0`, `master_sda_low <= 1'b0` |
+| I2C Slave | [`i2c_slave_vip.sv`](i2c_vip/sim/i2c_slave_vip.sv:21) | `slave_scl_low <= 1'b0`, `slave_sda_low <= 1'b0` |
+| UART TX | [`uart_tx_vip.sv`](uart_vip/sim/uart_tx_vip.sv:57) | `serial_data <= 1'b1` |
+| I2S TX | [`i2s_tx_vip.sv`](i2s_vip/sim/i2s_tx_vip.sv:36) | `bclk <= 1'b0`, `ws <= 1'b0`, `sd <= 1'b0` |
+
+UART RX 和 I2S RX 是只读 VIP（无输出信号），无需添加。
+
+### 5.14 新增：APB Master/Slave 事务方法末尾调用 `idle()` 替代手动清零（低优先级） ✅ 已完成
+
+**实现**：在 APB Master 和 Slave 的事务方法末尾使用 `idle()` 替代手动信号清零，减少代码重复：
+
+| 文件 | 方法 | 修改前 | 修改后 |
+|------|------|--------|--------|
+| [`apb_master_vip.sv`](apb_vip/sim/apb_master_vip.sv:113) | `write()` | 4 行手动清零 | `idle()` |
+| [`apb_master_vip.sv`](apb_vip/sim/apb_master_vip.sv:138) | `read()` | 2 行手动清零 | `idle()` |
+| [`apb_slave_vip.sv`](apb_vip/sim/apb_slave_vip.sv:107) | `expect_write()` | 2 行手动清零 | `idle()` |
+| [`apb_slave_vip.sv`](apb_vip/sim/apb_slave_vip.sv:129) | `respond_read()` | 3 行手动清零 | `idle()` |
+
+### 5.15 新增：AXI4-Lite Master 信号驱动优化（中优先级） ✅ 已完成
+
+**实现**：将 AXI4-Lite Master 的 4 个 channel API 中的信号驱动移到 handshake 循环外，与 AXI4-Full Master 的 `send_archn()` 模式一致：
+- `send_awchn()`：`awaddr/awprot/awvalid` 在 `do...while` 前驱动
+- `send_wchn()`：`wdata/wstrb/wvalid` 在 `do...while` 前驱动
+- `recv_bchn()`：`bready` 在 `do...while` 前驱动
+- `recv_rchn()`：`rready` 在 `do...while` 前驱动
+
 ---
 
 ## 六、文档改进
@@ -249,7 +318,7 @@
 
 ## 七、完成状态汇总
 
-### ✅ 已完成（22 项）
+### ✅ 已完成（28 项）
 
 | 编号 | 项目 | 优先级 |
 |------|------|--------|
@@ -260,6 +329,8 @@
 | 3.2 | 简化 AXI4-Full 参数传递 | 中 |
 | 3.4 | APB Slave 增加 backpressure 支持 | 低 |
 | 3.5 | I2C `tri1` 仿真警告分析 | 低 |
+| 3.6 | APB Master `apply_pause()` 分离 `wait_reset_release()` | 中 |
+| 3.7 | APB Slave `wait_access()` 移除 `wait_reset_release()` | 中 |
 | 4.1 | 增加回归测试脚本 | 中 |
 | 4.2 | 增加 Makefile | 低 |
 | 4.3 | CI 改进 | 中 |
@@ -273,9 +344,13 @@
 | 5.8 | I2C 时钟拉伸测试增强 | 低 |
 | 5.9 | AXI4-Full Slave VIP | 低 |
 | 5.10 | APB 测试 `apb_wait_q` 初始化 | 低 |
+| 5.11 | AXI4-Lite Master VIP 重构（对齐 AXI4-Full 架构） | 中 |
+| 5.12 | APB Master/Slave 添加 `clear_outputs()` 方法 | 中 |
+| 5.13 | 其他 VIP (SPI/I2C/UART/I2S) 添加 `clear_outputs()` | 中 |
+| 5.14 | APB Master/Slave 事务方法末尾调用 `idle()` | 低 |
+| 5.15 | AXI4-Lite Master 信号驱动优化 | 中 |
 | 6.1 | API 快速参考文档 | 低 |
 | 6.3 | README VIP 详细说明 | 低 |
-| **5.11** | **AXI4-Lite Master VIP 重构（对齐 AXI4-Full 架构）** | **中** |
 
 ### 📋 待完成（3 项，按优先级排序）
 
@@ -285,11 +360,108 @@
 | 4.4 | Verible lint 规则优化 | 低 |
 | 6.2 | 贡献指南 | 低 |
 
+### 🔮 未来改进建议（Phase 7 遗留，未实现）
+
+以下改进建议在 Phase 7 中识别但未实现，按功能类别分组：
+
+#### I 组：API 命名规范化（中优先级）
+
+**核心原则**：根据 VIP 是否发送 address，统一 API 命名 convention：
+
+| VIP 类别 | 包含 VIP | 特点 | Master API 命名 | Slave API 命名 |
+|----------|----------|------|-----------------|----------------|
+| **地址类** (address-based) | APB, AXI4-Lite, AXI4-Full | 发送 address | `write_req_*()` / `read_req_*()` | `write_resp_*()` / `read_resp_*()` |
+| **数据流类** (data-stream) | AXI4-Stream, SPI, I2C, UART, I2S | 不发送 address | `send_*()` / `recv_*()` | `send_*()` / `recv_*()` |
+
+**当前 API 命名现状**：
+
+| VIP | Master API | Slave API | 问题 |
+|-----|-----------|-----------|------|
+| **APB** | `write()` / `read()` | `expect_write()` / `respond_read()` | 地址类，但未用 `write_req/read_req` 命名 |
+| **AXI4-Lite** | `write_req_single()` / `read_req_single()` | `write_resp_single()` / `read_resp_single()` | ✅ 已符合地址类 convention |
+| **AXI4-Full** | `write_req_single()` / `read_req_single()` / `write_req_burst()` / `read_req_burst()` | `write_resp_single()` / `read_resp_single()` / `write_resp_burst()` / `read_resp_burst()` | ✅ 已符合地址类 convention |
+| **AXI4-Stream** | `send_single()` / `send_multi()` | `recv_single()` / `recv_multi()` | ✅ 已符合数据流类 convention |
+| **SPI** | `transfer()` | `transfer()` | 数据流类，但未用 `send/recv` 命名 |
+| **I2C** | `write_byte()` / `read_byte()` / `write_bytes()` / `read_bytes()` | `expect_write()` / `respond_read()` / `expect_write_bytes()` / `respond_read_bytes()` | 数据流类，但未用 `send/recv` 命名 |
+| **UART** | `transmit()` | `receive()` | 数据流类，但未用 `send/recv` 命名 |
+| **I2S** | `transmit()` | `receive()` | 数据流类，但未用 `send/recv` 命名 |
+
+**建议的 API 重命名映射**：
+
+| VIP | 当前 API | 建议新 API | 说明 |
+|-----|---------|-----------|------|
+| **APB Master** | `write()` | `write_req()` | 地址类，对齐 AXI4-Lite/Full |
+| **APB Master** | `read()` | `read_req()` | 地址类，对齐 AXI4-Lite/Full |
+| **APB Slave** | `expect_write()` | `write_resp()` | 地址类，对齐 AXI4-Lite/Full |
+| **APB Slave** | `respond_read()` | `read_resp()` | 地址类，对齐 AXI4-Lite/Full |
+| **SPI Master** | `transfer()` | `send_recv()` | 数据流类，全双工 send+recv |
+| **SPI Slave** | `transfer()` | `send_recv()` | 数据流类，全双工 send+recv |
+| **I2C Master** | `write_byte()` / `write_bytes()` | `send_byte()` / `send_bytes()` | 数据流类 |
+| **I2C Master** | `read_byte()` / `read_bytes()` | `recv_byte()` / `recv_bytes()` | 数据流类 |
+| **I2C Slave** | `expect_write()` / `expect_write_bytes()` | `recv_byte()` / `recv_bytes()` | 数据流类 |
+| **I2C Slave** | `respond_read()` / `respond_read_bytes()` | `send_byte()` / `send_bytes()` | 数据流类 |
+| **UART TX** | `transmit()` | `send_frame()` | 数据流类 |
+| **UART RX** | `receive()` | `recv_frame()` | 数据流类 |
+| **I2S TX** | `transmit()` | `send_frame()` | 数据流类 |
+| **I2S RX** | `receive()` | `recv_frame()` | 数据流类 |
+
+**向后兼容策略**：
+- 保留旧 API 作为别名（调用新 API），标记为 `// DEPRECATED: use send_frame() instead`
+- 测试用例逐步迁移到新 API
+- 在下一个大版本中移除旧 API
+
+#### F 组：为其他 VIP 添加 `idle()` 方法（低优先级）
+
+| 编号 | 项目 | 说明 |
+|------|------|------|
+| F1 | AXI4-Lite Slave 添加 `idle()` | 已有 `clear_outputs()`，缺少 `idle()` 方法 |
+| F2 | AXI4-Full Master 添加 `idle()` | 已有 `clear_outputs()`，缺少 `idle()` 方法 |
+| F3 | AXI4-Full Slave 添加 `idle()` | 已有 `clear_outputs()`，缺少 `idle()` 方法 |
+| F4 | AXI4-Stream Master 添加 `idle()` | 已有 `clear_outputs()`，缺少 `idle()` 方法 |
+| F5 | AXI4-Stream Slave 添加 `idle()` | 已有 `clear_outputs()`，缺少 `idle()` 方法 |
+
+#### G 组：统一 `apply_pause()` 分离 `wait_reset_release()`（中优先级）
+
+| 编号 | 项目 | 说明 |
+|------|------|------|
+| G1 | AXI4-Lite Master `apply_pause()` 分离 | 当前 `apply_pause()` 仍包含 `wait_reset_release()`，与 APB Master 不一致 |
+| G2 | AXI4-Full Master `apply_pause()` 分离 | 当前 `apply_pause()` 仍包含 `wait_reset_release()`，与 APB Master 不一致 |
+| G3 | SPI Master/Slave 分离 `wait_reset_release()` | `apply_pause()` 和 `transfer()` 中内联了复位等待 |
+| G4 | UART TX `transmit()` 分离 `wait_reset_release()` | 内联了复位等待 |
+| G5 | I2S TX `transmit()` 分离 `wait_reset_release()` | 内联了复位等待 |
+
+#### H 组：事务方法末尾调用 `idle()`（低优先级）
+
+| 编号 | 项目 | 说明 |
+|------|------|------|
+| H1 | SPI Master `transfer()` 末尾调用 `idle()` | 末尾手动清零 `cs_n/mosi` |
+| H2 | SPI Slave `transfer()` 末尾调用 `idle()` | 末尾手动清零 `miso` |
+| H3 | I2C Master 事务末尾调用 `idle()` | 无显式清理 |
+| H4 | I2C Slave 事务末尾调用 `idle()` | 无显式清理 |
+| H5 | UART TX `transmit()` 末尾调用 `idle()` | 无显式清理 |
+| H6 | I2S TX `transmit()` 末尾调用 `idle()` | 末尾手动清零 `ws/sd` |
+| H7 | AXI4-Lite Master/Slave 事务末尾调用 `idle()` | 无 `idle()` 方法 |
+| H8 | AXI4-Full Master/Slave 事务末尾调用 `idle()` | 无 `idle()` 方法 |
+| H9 | AXI4-Stream Master/Slave 事务末尾调用 `idle()` | 无 `idle()` 方法 |
+
 ---
 
 ## 八、总结
 
-经过全面重新审视，这个 repo 的整体质量良好，代码风格统一，测试覆盖合理。已完成 23 项改进，剩余 3 项待完成（均为低优先级）。`clean.py` 已被移除，其功能由 `make clean` 替代。
+经过全面重新审视，这个 repo 的整体质量良好，代码风格统一，测试覆盖合理。已完成 **28 项**改进，剩余 **3 项**待完成（均为低优先级）。`clean.py` 已被移除，其功能由 `make clean` 替代。
+
+**Phase 7 新增改进（5 项）**：
+1. **功能 C**：AXI4-Lite Master 信号驱动优化（5.15）
+2. **功能 A+B**：APB VIP `clear_outputs()` + `apply_pause()` 分离（3.6, 3.7, 5.12）
+3. **功能 E**：其他 VIP 添加 `clear_outputs()`（5.13）
+4. **功能 D1+D2**：APB Master/Slave 事务方法末尾调用 `idle()`（5.14）
+5. **功能 D3**：AXI4-Stream Slave 已有 `clear_outputs()` — 确认
+
+**未来改进方向**（按优先级排序）：
+1. **I 组**：API 命名规范化（中优先级，14 项）— 根据是否发送 address 统一 `write_req/read_req` vs `send/recv` convention
+2. **G 组**：统一 `apply_pause()` 分离 `wait_reset_release()`（5 项，中优先级）
+3. **F 组**：为 AXI4-Lite/Full/Stream VIP 添加 `idle()` 方法（5 项，低优先级）
+4. **H 组**：事务方法末尾调用 `idle()`（9 项，低优先级）
 
 **新发现的问题**（与上次分析相比新增）：
 1. 参数化范围检查缺失（2.5）
@@ -298,5 +470,10 @@
 4. AXI4-Full 缺少 Slave VIP（5.9）
 5. README 缺少各 VIP 详细说明（6.3）
 6. AXI4-Lite Master VIP 与 AXI4-Full Master VIP 架构不一致（5.11）
+7. APB Master `apply_pause()` 包含 `wait_reset_release()`（3.6）
+8. 其他 VIP 缺少 `clear_outputs()`（5.13）
+9. APB Master/Slave 事务方法末尾手动清零（5.14）
+10. AXI4-Lite Master 信号驱动位置可优化（5.15）
+11. API 命名不统一：地址类 vs 数据流类 VIP 使用混合命名风格（I 组）
 
 这些新发现的问题大多是低优先级的，不影响当前功能，但值得在后续迭代中逐步完善。
