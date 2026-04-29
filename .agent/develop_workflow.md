@@ -6,7 +6,7 @@
 > 语言: 简体中文 (zh-CN) — 与用户沟通语言
 > Commit 语言: 英语 — 代码提交信息使用英语
 >
-> 版本: v2.7 — 移除 repo_analysis.md 引用，统一文档引用结构
+> 版本: v2.8 — 新增蒸馏文档引用（`.agent/sv_light_vip_distill.md`）
 
 ---
 
@@ -35,6 +35,7 @@
 
 1. **读取项目文档** — 新 AI 窗口首先读取以下文档以建立上下文：
    - [`.agent/develop_workflow.md`](.agent/develop_workflow.md) — 本工作流文档（了解流程和规范）
+   - [`.agent/sv_light_vip_distill.md`](.agent/sv_light_vip_distill.md) — VIP 知识蒸馏（快速了解项目架构、公共设计模式、VIP 元数据）
    - [`API_REFERENCE.md`](API_REFERENCE.md) — API 参考文档（了解所有 VIP 的 API 规范）
    - 目标 VIP 的 [`doc/README.md`](.) — 具体 VIP 的文档
 
@@ -398,6 +399,7 @@
 
 1. **读取本工作流文档** — 了解完整流程、规范、检查清单
 2. **读取项目文档**:
+   - [`.agent/sv_light_vip_distill.md`](.agent/sv_light_vip_distill.md) — VIP 知识蒸馏（快速建立项目架构认知）
    - [`API_REFERENCE.md`](API_REFERENCE.md) — API 规范
 3. **读取当前 Phase 的输入** — 每个 Phase 开头有 `输入:` 标记，明确需要什么
 4. **查看 git log** — 了解最近的提交历史：
